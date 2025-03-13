@@ -11,7 +11,7 @@ export default function MonthlySalesChart() {
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "bar",
-      height: 180,
+      height: 350,
       toolbar: {
         show: false,
       },
@@ -19,76 +19,63 @@ export default function MonthlySalesChart() {
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: "39%",
-        borderRadius: 5,
-        borderRadiusApplication: "end",
+        columnWidth: "50%",
+        borderRadius: 4,
+        distributed: true,
       },
     },
     dataLabels: {
-      enabled: false,
-    },
-    stroke: {
-      show: true,
-      width: 4,
-      colors: ["transparent"],
+      enabled: true,
+      formatter: function (val) {
+        return val.toLocaleString('vi-VN') + ' vé';
+      },
+      style: {
+        fontSize: '12px',
+        colors: ["#fff"]
+      }
     },
     xaxis: {
       categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
+        'CGV\nAeon\nTân Phú',
+        'CGV\nCrescent\nMall',
+        'CGV\nSư Vạn\nHạnh',
+        'CGV\nVincom\nThủ Đức',
+        'CGV\nPearl\nPlaza',
+        'BHD\nPhạm\nHùng',
+        'BHD\nQuang\nTrung',
+        'Lotte\nCantavil',
+        'Lotte\nNam SG',
+        'Lotte\nGò Vấp',
       ],
-      axisBorder: {
-        show: false,
-      },
-      axisTicks: {
-        show: false,
+      labels: {
+        style: {
+          fontSize: '12px',
+        },
+        rotate: -45,
+      }
+    },
+    yaxis: {
+      labels: {
+        formatter: (val) => val.toLocaleString('vi-VN'),
+      }
+    },
+    grid: {
+      show: false
+    },
+    tooltip: {
+      y: {
+        formatter: (val: number) => `${val.toLocaleString('vi-VN')} vé`,
       },
     },
     legend: {
-      show: true,
-      position: "top",
-      horizontalAlign: "left",
-      fontFamily: "Outfit",
-    },
-    yaxis: {
-      title: {
-        text: undefined,
-      },
-    },
-    grid: {
-      yaxis: {
-        lines: {
-          show: true,
-        },
-      },
-    },
-    fill: {
-      opacity: 1,
-    },
-
-    tooltip: {
-      x: {
-        show: false,
-      },
-      y: {
-        formatter: (val: number) => `${val}`,
-      },
+      show: false  // Hide the legend completely
     },
   };
+
   const series = [
     {
-      name: "Sales",
-      data: [168, 385, 201, 298, 187, 195, 291, 110, 215, 390, 280, 112],
+      name: "Số vé đã bán",
+      data: [2450, 2100, 1950, 1850, 1800, 1700, 1650, 1500, 1450, 1400],
     },
   ];
   const [isOpen, setIsOpen] = useState(false);
@@ -102,10 +89,13 @@ export default function MonthlySalesChart() {
   }
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Monthly Sales
-        </h3>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Thống Kê Vé Theo Rạp
+          </h3>
+        
+        </div>
         <div className="relative inline-block">
           <button className="dropdown-toggle" onClick={toggleDropdown}>
             <MoreDotIcon className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 size-6" />
@@ -132,8 +122,8 @@ export default function MonthlySalesChart() {
       </div>
 
       <div className="max-w-full overflow-x-auto custom-scrollbar">
-        <div className="-ml-5 min-w-[650px] xl:min-w-full pl-2">
-          <Chart options={options} series={series} type="bar" height={180} />
+        <div className="min-w-[650px] xl:min-w-full">
+          <Chart options={options} series={series} type="bar" height={350} />
         </div>
       </div>
     </div>

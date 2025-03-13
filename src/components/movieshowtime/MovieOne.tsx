@@ -13,6 +13,8 @@ import { useState } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
+import { Select as AntSelect, Space, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 
 interface Showtime {
   id?: number;
@@ -45,7 +47,7 @@ interface Movie {
   rating: number;
   ratingCount: number;
   status: 'COMING_SOON' | 'NOW_SHOWING' | 'ENDED';
-  genre?: string;
+  genres?: string[]; // Change from genre?: string
   country?: string;
   synopsis?: string;
   showtimes?: Showtime[];
@@ -88,12 +90,26 @@ const formTabs = [
   { name: 'Nội dung & Media', icon: 'description' },
 ];
 
+interface MovieCategory {
+  id?: number;
+  name: string;
+  description: string;
+  created_at?: string; 
+  updated_at?: string;
+}
+
 export default function MovieOne() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
   const [newMovie, setNewMovie] = useState<Partial<Movie>>({
     status: 'COMING_SOON',
     ageRating: 'P'
+  });
+  const [newGenre, setNewGenre] = useState({ name: '' });
+  const [newCategory, setNewCategory] = useState<Omit<MovieCategory, 'id' | 'created_at' | 'updated_at'>>({
+    name: '',
+    description: ''
   });
 
   const ageRatingOptions = [
@@ -130,6 +146,19 @@ export default function MovieOne() {
     e.preventDefault();
     console.log('Submit:', newMovie);
     setIsModalOpen(false);
+  };
+
+  const handleGenreSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Submit new genre:', newGenre);
+    setIsGenreModalOpen(false);
+  };
+
+  const handleCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Submit new category:', newCategory);
+    setIsGenreModalOpen(false);
+    setNewCategory({ name: '', description: '' });
   };
 
   const [activeTab, setActiveTab] = useState(0);
@@ -208,7 +237,7 @@ export default function MovieOne() {
                     {movie.title}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-[250px] bg-white dark:bg-gray-800 z-10">
-                    {movie.genre}
+                    {movie.genres?.join(', ')}
                   </TableCell>
                   {/* Scrollable Columns */}
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
@@ -312,12 +341,35 @@ export default function MovieOne() {
                       </div>
                       <div>
                         <Label>Thể loại*</Label>
-                        <Select
-                          options={genreOptions}
-                          value={newMovie.genre}
-                          onChange={(value) => setNewMovie({...newMovie, genre: value})}
-                          placeholder="Chọn thể loại"
-                        />
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <AntSelect
+                              mode="multiple"
+                              style={{ width: '100%', height: '40px' }}
+                              dropdownStyle={{ minWidth: '200px' }}
+                              className="rounded-lg border border-gray-300"
+                              placeholder="Chọn thể loại"
+                              value={newMovie.genres}
+                              onChange={(values) => setNewMovie({...newMovie, genres: values})}
+                              options={genreOptions}
+                              optionRender={(option) => (
+                                <Space>
+                                  {option.data.label}
+                                  <span className="text-gray-500 text-sm">
+                                    {option.data.desc}
+                                  </span>
+                                </Space>
+                              )}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsGenreModalOpen(true)}
+                            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
+                          >
+                            <PlusIcon className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <Label htmlFor="duration">Thời lượng (phút)*</Label>
@@ -382,12 +434,15 @@ export default function MovieOne() {
                       </div>
                       <div>
                         <Label htmlFor="releaseDate">Ngày khởi chiếu*</Label>
-                        <Input
-                          type="date"
-                          id="releaseDate"
-                          required
-                          value={newMovie.releaseDate || ''}
-                          onChange={e => setNewMovie({...newMovie, releaseDate: e.target.value})}
+                        <DatePicker 
+                          style={{ width: '100%', height: '40px' }}
+                          format="YYYY-MM-DD"
+                          placeholder="Chọn ngày khởi chiếu"
+                          value={newMovie.releaseDate ? dayjs(newMovie.releaseDate) : null}
+                          onChange={(date, dateString) => setNewMovie({
+                            ...newMovie,
+                            releaseDate: dateString
+                          })}
                         />
                       </div>
                       <div>
@@ -409,8 +464,9 @@ export default function MovieOne() {
                         <Label htmlFor="description">Mô tả</Label>
                         <textarea
                           id="description"
-                          className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 transition-all duration-200"
                           rows={3}
+                          placeholder="Nhập mô tả phim"
                           value={newMovie.description || ''}
                           onChange={e => setNewMovie({...newMovie, description: e.target.value})}
                         />
@@ -419,8 +475,9 @@ export default function MovieOne() {
                         <Label htmlFor="synopsis">Nội dung phim</Label>
                         <textarea
                           id="synopsis"
-                          className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 transition-all duration-200" 
                           rows={4}
+                          placeholder="Nhập nội dung phim"
                           value={newMovie.synopsis || ''}
                           onChange={e => setNewMovie({...newMovie, synopsis: e.target.value})}
                         />
@@ -452,6 +509,60 @@ export default function MovieOne() {
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                 >
                   Lưu
+                </button>
+              </div>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
+
+      {/* Add Genre Modal */}
+      <Dialog
+        open={isGenreModalOpen}
+        onClose={() => setIsGenreModalOpen(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-sm w-full rounded-lg bg-white p-6 dark:bg-gray-800">
+            <Dialog.Title className="text-lg font-medium mb-4">Thêm thể loại phim</Dialog.Title>
+            <form onSubmit={handleCategorySubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="categoryName">Tên thể loại*</Label>
+                <Input
+                  type="text"
+                  id="categoryName"
+                  required
+                  maxLength={50}
+                  placeholder="Nhập tên thể loại"
+                  value={newCategory.name}
+                  onChange={e => setNewCategory({...newCategory, name: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="categoryDescription">Mô tả</Label>
+                <textarea
+                  id="categoryDescription"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 transition-all duration-200"
+                  rows={4}
+                  placeholder="Nhập mô tả cho thể loại"
+                  value={newCategory.description}
+                  onChange={e => setNewCategory({...newCategory, description: e.target.value})}
+                />
+              </div>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsGenreModalOpen(false)}
+                  className="px-4 py-2 text-gray-500 hover:text-gray-700"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  Thêm
                 </button>
               </div>
             </form>

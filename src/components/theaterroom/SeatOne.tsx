@@ -13,6 +13,7 @@ import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
 import { twMerge } from "tailwind-merge";
+import { Menu } from '@headlessui/react';
 
 interface Seat {
   id: number;
@@ -57,6 +58,8 @@ export default function SeatOne() {
     status: 'ACTIVE',
     seatType: 'REGULAR'
   });
+  const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const seatTypeOptions = [
     { value: "REGULAR", label: "Thường" },
@@ -75,6 +78,49 @@ export default function SeatOne() {
     e.preventDefault();
     console.log('Submit:', newSeat);
     setIsModalOpen(false);
+  };
+
+  const handleEditSeat = (seat: Seat) => {
+    setSelectedSeat(seat);
+    setNewSeat(seat);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteSeat = (seatId: number) => {
+    if (confirm('Bạn có chắc chắn muốn xóa ghế này?')) {
+      console.log('Delete seat:', seatId);
+      // Implement delete logic here
+    }
+  };
+
+  const handleAddSeatToRow = (row: string) => {
+    const maxSeatNumber = seatsByRow[row] 
+      ? Math.max(...seatsByRow[row].map(seat => seat.seatNumber))
+      : 0;
+    
+    setNewSeat({
+      status: 'ACTIVE',
+      seatType: 'REGULAR',
+      seatRow: row,
+      seatNumber: maxSeatNumber + 1,
+      roomId: seatsByRow[row]?.[0]?.roomId || 1
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleAddNewRow = () => {
+    // Get the last row letter and calculate next one
+    const lastRow = sortedRows[sortedRows.length - 1] || '@';
+    const nextRow = String.fromCharCode(lastRow.charCodeAt(0) + 1);
+    
+    setNewSeat({
+      status: 'ACTIVE',
+      seatType: 'REGULAR',
+      seatRow: nextRow,
+      seatNumber: 1,
+      roomId: tableData[0]?.roomId || 1
+    });
+    setIsModalOpen(true);
   };
 
   // Nhóm ghế theo hàng
@@ -115,24 +161,73 @@ export default function SeatOne() {
           {sortedRows.map((row) => (
             <div key={row} className="flex items-center gap-4">
               <div className="w-8 text-center font-bold">{row}</div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
                 {seatsByRow[row]
                   .sort((a, b) => a.seatNumber - b.seatNumber)
                   .map((seat) => (
-                    <button
-                      key={seat.id}
-                      className={twMerge(
-                        "w-10 h-10 rounded-t-lg flex items-center justify-center text-white text-sm font-medium transition-colors",
-                        getSeatColor(seat.seatType, seat.status)
-                      )}
-                      title={`${seat.seatRow}${seat.seatNumber} - ${seat.seatType}`}
-                    >
-                      {seat.seatNumber}
-                    </button>
+                    <Menu key={seat.id} as="div" className="relative">
+                      <Menu.Button
+                        className={twMerge(
+                          "w-10 h-10 rounded-t-lg flex items-center justify-center text-white text-sm font-medium transition-colors",
+                          getSeatColor(seat.seatType, seat.status)
+                        )}
+                        title={`${seat.seatRow}${seat.seatNumber} - ${seat.seatType}`}
+                      >
+                        {seat.seatNumber}
+                      </Menu.Button>
+                      <Menu.Items className="absolute z-10 mt-1 w-32 origin-top-right bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <div className="py-1">
+                          <Menu.Item>
+                            {({ active }) => (
+                              <button
+                                onClick={() => handleEditSeat(seat)}
+                                className={`${
+                                  active ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                } flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
+                              >
+                                <PencilIcon className="w-4 h-4 mr-2" />
+                                Sửa
+                              </button>
+                            )}
+                          </Menu.Item>
+                          <Menu.Item>
+                            {({ active }) => (
+                              <button
+                                onClick={() => handleDeleteSeat(seat.id)}
+                                className={`${
+                                  active ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                } flex items-center w-full px-4 py-2 text-sm text-red-600`}
+                              >
+                                <TrashIcon className="w-4 h-4 mr-2" />
+                                Xóa
+                              </button>
+                            )}
+                          </Menu.Item>
+                        </div>
+                      </Menu.Items>
+                    </Menu>
                   ))}
+                <button
+                  onClick={() => handleAddSeatToRow(row)}
+                  className="w-10 h-10 rounded-t-lg flex items-center justify-center text-gray-400 hover:text-gray-600 border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors"
+                  title={`Thêm ghế vào hàng ${row}`}
+                >
+                  <PlusIcon className="w-6 h-6" />
+                </button>
               </div>
             </div>
           ))}
+
+          {/* Add new row button */}
+          <div className="flex items-center justify-center mt-8">
+            <button
+              onClick={handleAddNewRow}
+              className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>Thêm hàng mới</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -343,6 +438,89 @@ export default function SeatOne() {
                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                   >
                     Lưu
+                  </button>
+                </div>
+              </form>
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+
+        {/* Edit Seat Modal */}
+        <Dialog
+          open={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="mx-auto max-w-md w-full rounded-lg bg-white p-6 dark:bg-gray-800">
+              <Dialog.Title className="text-lg font-medium mb-4">Sửa ghế</Dialog.Title>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <Label htmlFor="roomId">Phòng*</Label>
+                  <Input
+                    type="number"
+                    id="roomId"
+                    required
+                    value={newSeat.roomId || ''}
+                    onChange={e => setNewSeat({...newSeat, roomId: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="seatRow">Hàng*</Label>
+                  <Input
+                    type="text"
+                    id="seatRow"
+                    required
+                    maxLength={1}
+                    value={newSeat.seatRow || ''}
+                    onChange={e => setNewSeat({...newSeat, seatRow: e.target.value.toUpperCase()})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="seatNumber">Số ghế*</Label>
+                  <Input
+                    type="number"
+                    id="seatNumber"
+                    required
+                    value={newSeat.seatNumber || ''}
+                    onChange={e => setNewSeat({...newSeat, seatNumber: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <Label>Loại ghế*</Label>
+                  <Select
+                    options={seatTypeOptions}
+                    value={newSeat.seatType}
+                    onChange={(value) => setNewSeat({...newSeat, seatType: value as Seat['seatType']})}
+                    placeholder="Chọn loại ghế"
+                    className="dark:bg-dark-900"
+                  />
+                </div>
+                <div>
+                  <Label>Trạng thái</Label>
+                  <Select
+                    options={statusOptions}
+                    value={newSeat.status}
+                    onChange={(value) => setNewSeat({...newSeat, status: value as Seat['status']})}
+                    placeholder="Chọn trạng thái"
+                    className="dark:bg-dark-900"
+                  />
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="px-4 py-2 text-gray-500 hover:text-gray-700"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  >
+                    Cập nhật
                   </button>
                 </div>
               </form>
