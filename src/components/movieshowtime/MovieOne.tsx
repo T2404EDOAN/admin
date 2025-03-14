@@ -1,4 +1,4 @@
-import { Tab } from '@headlessui/react';
+import { Tab } from "@headlessui/react";
 import {
   Table,
   TableBody,
@@ -9,13 +9,13 @@ import {
 import Badge from "../ui/badge/Badge";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { Dialog } from "@headlessui/react";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
-import { Select as AntSelect, Space, DatePicker } from 'antd';
-import dayjs from 'dayjs';
-
+import { Select as AntSelect, Space, DatePicker } from "antd";
+import dayjs from "dayjs";
+import axios from "axios";
 interface Showtime {
   id?: number;
   startTime: string;
@@ -41,12 +41,12 @@ interface Movie {
   productionCountry?: string;
   releaseDate: string;
   endDate?: string;
-  ageRating: 'P' | 'C13' | 'C16' | 'C18';
+  ageRating: "P" | "C13" | "C16" | "C18";
   language?: string;
   subtitles?: string;
   rating: number;
   ratingCount: number;
-  status: 'COMING_SOON' | 'NOW_SHOWING' | 'ENDED';
+  status: "COMING_SOON" | "NOW_SHOWING" | "ENDED";
   genres?: string[]; // Change from genre?: string
   country?: string;
   synopsis?: string;
@@ -66,7 +66,7 @@ const movieData: Movie[] = [
     releaseDate: "2023-01-01",
     endDate: "2023-02-01",
     rating: 4.5,
-    ratingCount: 1000
+    ratingCount: 1000,
   },
   {
     id: 2,
@@ -80,21 +80,21 @@ const movieData: Movie[] = [
     releaseDate: "2023-06-01",
     endDate: "2023-07-01",
     rating: 4.8,
-    ratingCount: 2000
-  }
+    ratingCount: 2000,
+  },
 ];
 
 const formTabs = [
-  { name: 'Thông tin cơ bản', icon: 'info' },
-  { name: 'Chi tiết sản xuất', icon: 'film' },
-  { name: 'Nội dung & Media', icon: 'description' },
+  { name: "Thông tin cơ bản", icon: "info" },
+  { name: "Chi tiết sản xuất", icon: "film" },
+  { name: "Nội dung & Media", icon: "description" },
 ];
 
 interface MovieCategory {
   id?: number;
   name: string;
   description: string;
-  created_at?: string; 
+  created_at?: string;
   updated_at?: string;
 }
 
@@ -103,13 +103,15 @@ export default function MovieOne() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
   const [newMovie, setNewMovie] = useState<Partial<Movie>>({
-    status: 'COMING_SOON',
-    ageRating: 'P'
+    status: "COMING_SOON",
+    ageRating: "P",
   });
-  const [newGenre, setNewGenre] = useState({ name: '' });
-  const [newCategory, setNewCategory] = useState<Omit<MovieCategory, 'id' | 'created_at' | 'updated_at'>>({
-    name: '',
-    description: ''
+  const [newGenre, setNewGenre] = useState({ name: "" });
+  const [newCategory, setNewCategory] = useState<
+    Omit<MovieCategory, "id" | "created_at" | "updated_at">
+  >({
+    name: "",
+    description: "",
   });
 
   const ageRatingOptions = [
@@ -144,25 +146,45 @@ export default function MovieOne() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submit:', newMovie);
+    console.log("Submit:", newMovie);
     setIsModalOpen(false);
   };
 
   const handleGenreSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submit new genre:', newGenre);
+    console.log("Submit new genre:", newGenre);
     setIsGenreModalOpen(false);
   };
 
   const handleCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submit new category:', newCategory);
+    console.log("Submit new category:", newCategory);
     setIsGenreModalOpen(false);
-    setNewCategory({ name: '', description: '' });
+    setNewCategory({ name: "", description: "" });
   };
 
   const [activeTab, setActiveTab] = useState(0);
-  
+  const [loading, setLoading] = useState(false);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("https://skystar.io.vn/api/movies");
+
+        // Lưu toàn bộ dữ liệu vào state
+        setMovies(response.data.content);
+        console.log(response.data.content);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách phim:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, []);
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="p-4 flex items-center justify-end gap-4 border-b border-gray-200 dark:border-white/[0.05]">
@@ -184,114 +206,165 @@ export default function MovieOne() {
       </div>
 
       <div className="max-w-full overflow-x-auto">
-        <div className="min-w-[1400px]"> {/* Increased minimum width */}
+        <div className="min-w-[1400px]">
+          {" "}
+          {/* Increased minimum width */}
           <Table>
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
               <TableRow>
                 {/* Fixed Columns */}
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 sticky left-0 bg-white dark:bg-gray-800 z-20">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 sticky left-0 bg-white dark:bg-gray-800 z-20"
+                >
                   STT
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 sticky left-[50px] bg-white dark:bg-gray-800 z-20">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 sticky left-[50px] bg-white dark:bg-gray-800 z-20"
+                >
                   Tên phim
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 sticky left-[250px] bg-white dark:bg-gray-800 z-20">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 sticky left-[250px] bg-white dark:bg-gray-800 z-20"
+                >
                   Thể loại
                 </TableCell>
                 {/* Scrollable Columns */}
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Thời lượng
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Quốc gia
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Đạo diễn
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Diễn viên
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Độ tuổi
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Ngày chiếu
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Trạng thái
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Thao tác
                 </TableCell>
               </TableRow>
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {movieData.map((movie, index) => (
-                <TableRow key={movie.id}>
-                  {/* Fixed Columns */}
-                  <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-0 bg-white dark:bg-gray-800 z-10">
-                    {index + 1}
-                  </TableCell>
-                  <TableCell className="px-5 py-4 text-gray-800 text-theme-sm dark:text-white/90 sticky left-[50px] bg-white dark:bg-gray-800 z-10">
-                    {movie.title}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-[250px] bg-white dark:bg-gray-800 z-10">
-                    {movie.genres?.join(', ')}
-                  </TableCell>
-                  {/* Scrollable Columns */}
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {movie.duration} phút
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {movie.country}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {movie.director}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {movie.cast}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    <Badge size="sm" color="primary">
-                      {movie.ageRating}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {movie.releaseDate}
-                  </TableCell>
-                  <TableCell className="px-4 py-3">
-                    <Badge
-                      size="sm"
-                      color={
-                        movie.status === "NOW_SHOWING"
-                          ? "success"
-                          : movie.status === "COMING_SOON"
-                          ? "warning"
-                          : "error"
-                      }
-                    >
-                      {movie.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => console.log('Edit:', movie.id)}
-                        className="p-1 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-                      >
-                        <PencilIcon className="w-5 h-5" />
-                      </button>
-                      <button 
-                        onClick={() => console.log('Delete:', movie.id)}
-                        className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                      >
-                        <TrashIcon className="w-5 h-5" />
-                      </button>
-                    </div>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-4">
+                    Đang tải dữ liệu...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : movies.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-4">
+                    Không có dữ liệu phim
+                  </TableCell>
+                </TableRow>
+              ) : (
+                movies.map((movie, index) => (
+                  <TableRow key={movie.id}>
+                    <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-0 bg-white dark:bg-gray-800 z-10">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell className="px-5 py-4 text-gray-800 text-theme-sm dark:text-white/90 sticky left-[50px] bg-white dark:bg-gray-800 z-10">
+                      {movie.title}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-[250px] bg-white dark:bg-gray-800 z-10">
+                      {movie.genres.map((genre) => genre.name).join(", ")}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {movie.duration} phút
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {movie.productionCountry}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {movie.director || "Chưa cập nhật"}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {movie.cast || "Chưa cập nhật"}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      <Badge size="sm" color="primary">
+                        {movie.ageRating}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {dayjs(movie.releaseDate).format("DD/MM/YYYY")}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge
+                        size="sm"
+                        color={
+                          movie.status === "NOW_SHOWING"
+                            ? "success"
+                            : movie.status === "COMING_SOON"
+                            ? "warning"
+                            : "error"
+                        }
+                      >
+                        {movie.status === "NOW_SHOWING"
+                          ? "Đang chiếu"
+                          : movie.status === "COMING_SOON"
+                          ? "Sắp chiếu"
+                          : "Đã kết thúc"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => console.log("Edit:", movie.id)}
+                          className="p-1 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                        >
+                          <PencilIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => console.log("Delete:", movie.id)}
+                          className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
@@ -305,7 +378,9 @@ export default function MovieOne() {
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="mx-auto max-w-2xl w-full rounded-lg bg-white p-6 dark:bg-gray-800">
-            <Dialog.Title className="text-lg font-medium mb-4">Thêm phim mới</Dialog.Title>
+            <Dialog.Title className="text-lg font-medium mb-4">
+              Thêm phim mới
+            </Dialog.Title>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Tab.Group selectedIndex={activeTab} onChange={setActiveTab}>
                 <Tab.List className="flex space-x-2 rounded-xl bg-gray-100 p-1">
@@ -314,9 +389,10 @@ export default function MovieOne() {
                       key={tab.name}
                       className={({ selected }) =>
                         `w-full rounded-lg py-2.5 text-sm font-medium leading-5
-                         ${selected 
-                           ? 'bg-white text-blue-600 shadow' 
-                           : 'text-gray-600 hover:text-gray-800'
+                         ${
+                           selected
+                             ? "bg-white text-blue-600 shadow"
+                             : "text-gray-600 hover:text-gray-800"
                          }`
                       }
                     >
@@ -335,8 +411,10 @@ export default function MovieOne() {
                           type="text"
                           id="title"
                           required
-                          value={newMovie.title || ''}
-                          onChange={e => setNewMovie({...newMovie, title: e.target.value})}
+                          value={newMovie.title || ""}
+                          onChange={(e) =>
+                            setNewMovie({ ...newMovie, title: e.target.value })
+                          }
                         />
                       </div>
                       <div>
@@ -345,12 +423,14 @@ export default function MovieOne() {
                           <div className="flex-1">
                             <AntSelect
                               mode="multiple"
-                              style={{ width: '100%', height: '40px' }}
-                              dropdownStyle={{ minWidth: '200px' }}
+                              style={{ width: "100%", height: "40px" }}
+                              dropdownStyle={{ minWidth: "200px" }}
                               className="rounded-lg border border-gray-300"
                               placeholder="Chọn thể loại"
                               value={newMovie.genres}
-                              onChange={(values) => setNewMovie({...newMovie, genres: values})}
+                              onChange={(values) =>
+                                setNewMovie({ ...newMovie, genres: values })
+                              }
                               options={genreOptions}
                               optionRender={(option) => (
                                 <Space>
@@ -377,8 +457,13 @@ export default function MovieOne() {
                           type="number"
                           id="duration"
                           required
-                          value={newMovie.duration || ''}
-                          onChange={e => setNewMovie({...newMovie, duration: parseInt(e.target.value)})}
+                          value={newMovie.duration || ""}
+                          onChange={(e) =>
+                            setNewMovie({
+                              ...newMovie,
+                              duration: parseInt(e.target.value),
+                            })
+                          }
                         />
                       </div>
                       <div>
@@ -386,7 +471,9 @@ export default function MovieOne() {
                         <Select
                           options={countryOptions}
                           value={newMovie.country}
-                          onChange={(value) => setNewMovie({...newMovie, country: value})}
+                          onChange={(value) =>
+                            setNewMovie({ ...newMovie, country: value })
+                          }
                           placeholder="Chọn quốc gia"
                         />
                       </div>
@@ -395,7 +482,12 @@ export default function MovieOne() {
                         <Select
                           options={ageRatingOptions}
                           value={newMovie.ageRating}
-                          onChange={(value) => setNewMovie({...newMovie, ageRating: value as Movie['ageRating']})}
+                          onChange={(value) =>
+                            setNewMovie({
+                              ...newMovie,
+                              ageRating: value as Movie["ageRating"],
+                            })
+                          }
                           placeholder="Chọn giới hạn độ tuổi"
                         />
                       </div>
@@ -404,7 +496,12 @@ export default function MovieOne() {
                         <Select
                           options={statusOptions}
                           value={newMovie.status}
-                          onChange={(value) => setNewMovie({...newMovie, status: value as Movie['status']})}
+                          onChange={(value) =>
+                            setNewMovie({
+                              ...newMovie,
+                              status: value as Movie["status"],
+                            })
+                          }
                           placeholder="Chọn trạng thái"
                         />
                       </div>
@@ -419,8 +516,13 @@ export default function MovieOne() {
                         <Input
                           type="text"
                           id="director"
-                          value={newMovie.director || ''}
-                          onChange={e => setNewMovie({...newMovie, director: e.target.value})}
+                          value={newMovie.director || ""}
+                          onChange={(e) =>
+                            setNewMovie({
+                              ...newMovie,
+                              director: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div>
@@ -428,21 +530,29 @@ export default function MovieOne() {
                         <Input
                           type="text"
                           id="cast"
-                          value={newMovie.cast || ''}
-                          onChange={e => setNewMovie({...newMovie, cast: e.target.value})}
+                          value={newMovie.cast || ""}
+                          onChange={(e) =>
+                            setNewMovie({ ...newMovie, cast: e.target.value })
+                          }
                         />
                       </div>
                       <div>
                         <Label htmlFor="releaseDate">Ngày khởi chiếu*</Label>
-                        <DatePicker 
-                          style={{ width: '100%', height: '40px' }}
+                        <DatePicker
+                          style={{ width: "100%", height: "40px" }}
                           format="YYYY-MM-DD"
                           placeholder="Chọn ngày khởi chiếu"
-                          value={newMovie.releaseDate ? dayjs(newMovie.releaseDate) : null}
-                          onChange={(date, dateString) => setNewMovie({
-                            ...newMovie,
-                            releaseDate: dateString
-                          })}
+                          value={
+                            newMovie.releaseDate
+                              ? dayjs(newMovie.releaseDate)
+                              : null
+                          }
+                          onChange={(date, dateString) =>
+                            setNewMovie({
+                              ...newMovie,
+                              releaseDate: dateString,
+                            })
+                          }
                         />
                       </div>
                       <div>
@@ -450,8 +560,13 @@ export default function MovieOne() {
                         <Input
                           type="url"
                           id="trailerUrl"
-                          value={newMovie.trailerUrl || ''}
-                          onChange={e => setNewMovie({...newMovie, trailerUrl: e.target.value})}
+                          value={newMovie.trailerUrl || ""}
+                          onChange={(e) =>
+                            setNewMovie({
+                              ...newMovie,
+                              trailerUrl: e.target.value,
+                            })
+                          }
                         />
                       </div>
                     </div>
@@ -467,19 +582,29 @@ export default function MovieOne() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 transition-all duration-200"
                           rows={3}
                           placeholder="Nhập mô tả phim"
-                          value={newMovie.description || ''}
-                          onChange={e => setNewMovie({...newMovie, description: e.target.value})}
+                          value={newMovie.description || ""}
+                          onChange={(e) =>
+                            setNewMovie({
+                              ...newMovie,
+                              description: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div>
                         <Label htmlFor="synopsis">Nội dung phim</Label>
                         <textarea
                           id="synopsis"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 transition-all duration-200" 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 transition-all duration-200"
                           rows={4}
                           placeholder="Nhập nội dung phim"
-                          value={newMovie.synopsis || ''}
-                          onChange={e => setNewMovie({...newMovie, synopsis: e.target.value})}
+                          value={newMovie.synopsis || ""}
+                          onChange={(e) =>
+                            setNewMovie({
+                              ...newMovie,
+                              synopsis: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div>
@@ -487,8 +612,13 @@ export default function MovieOne() {
                         <Input
                           type="url"
                           id="posterUrl"
-                          value={newMovie.posterUrl || ''}
-                          onChange={e => setNewMovie({...newMovie, posterUrl: e.target.value})}
+                          value={newMovie.posterUrl || ""}
+                          onChange={(e) =>
+                            setNewMovie({
+                              ...newMovie,
+                              posterUrl: e.target.value,
+                            })
+                          }
                         />
                       </div>
                     </div>
@@ -525,7 +655,9 @@ export default function MovieOne() {
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="mx-auto max-w-sm w-full rounded-lg bg-white p-6 dark:bg-gray-800">
-            <Dialog.Title className="text-lg font-medium mb-4">Thêm thể loại phim</Dialog.Title>
+            <Dialog.Title className="text-lg font-medium mb-4">
+              Thêm thể loại phim
+            </Dialog.Title>
             <form onSubmit={handleCategorySubmit} className="space-y-4">
               <div>
                 <Label htmlFor="categoryName">Tên thể loại*</Label>
@@ -536,7 +668,9 @@ export default function MovieOne() {
                   maxLength={50}
                   placeholder="Nhập tên thể loại"
                   value={newCategory.name}
-                  onChange={e => setNewCategory({...newCategory, name: e.target.value})}
+                  onChange={(e) =>
+                    setNewCategory({ ...newCategory, name: e.target.value })
+                  }
                 />
               </div>
               <div>
@@ -547,7 +681,12 @@ export default function MovieOne() {
                   rows={4}
                   placeholder="Nhập mô tả cho thể loại"
                   value={newCategory.description}
-                  onChange={e => setNewCategory({...newCategory, description: e.target.value})}
+                  onChange={(e) =>
+                    setNewCategory({
+                      ...newCategory,
+                      description: e.target.value,
+                    })
+                  }
                 />
               </div>
               <div className="mt-6 flex justify-end gap-3">

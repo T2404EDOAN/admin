@@ -8,14 +8,15 @@ import {
 import Badge from "../ui/badge/Badge";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { Dialog } from "@headlessui/react";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
+import axios from "axios";
 
 interface Theater {
   id: number;
-  name: string; 
+  name: string;
   code: string;
   address: string;
   city: string;
@@ -29,7 +30,7 @@ interface Theater {
   totalSeats: number;
   totalRooms: number;
   facilities?: string;
-  status: 'ACTIVE' | 'MAINTENANCE' | 'CLOSED';
+  status: "ACTIVE" | "MAINTENANCE" | "CLOSED";
 }
 
 const tableData: Theater[] = [
@@ -64,7 +65,7 @@ export default function TheaterOne() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTheater, setNewTheater] = useState<Partial<Theater>>({
-    status: 'ACTIVE'
+    status: "ACTIVE",
   });
 
   const statusOptions = [
@@ -75,9 +76,29 @@ export default function TheaterOne() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submit:', newTheater);
+    console.log("Submit:", newTheater);
     setIsModalOpen(false);
   };
+  const [loading, setLoading] = useState(false);
+  const [theaters, setTheaters] = useState<Theater[]>([]);
+  useEffect(() => {
+    const fetchTableData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:8081/api/theaters");
+
+        // Lưu toàn bộ dữ liệu vào state
+        setTheaters(response.data);
+        console.log(response.data);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách phim:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTableData();
+  }, []);
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -104,32 +125,53 @@ export default function TheaterOne() {
           <Table>
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
               <TableRow>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Theater Name
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Code
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Location
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Contact
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Capacity
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Status
                 </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                <TableCell
+                  isHeader
+                  className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                >
                   Actions
                 </TableCell>
               </TableRow>
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {tableData.map((theater) => (
+              {theaters.map((theater) => (
                 <TableRow key={theater.id}>
                   <TableCell className="px-5 py-4 text-gray-800 text-theme-sm dark:text-white/90">
                     {theater.name}
@@ -140,7 +182,9 @@ export default function TheaterOne() {
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     <div>
                       <span className="block">{theater.address}</span>
-                      <span className="text-xs text-gray-400">{theater.district}, {theater.city}</span>
+                      <span className="text-xs text-gray-400">
+                        {theater.district}, {theater.city}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
@@ -165,14 +209,14 @@ export default function TheaterOne() {
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => console.log('Edit:', theater.id)}
+                      <button
+                        onClick={() => console.log("Edit:", theater.id)}
                         className="p-1 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                       >
                         <PencilIcon className="w-5 h-5" />
                       </button>
-                      <button 
-                        onClick={() => console.log('Delete:', theater.id)}
+                      <button
+                        onClick={() => console.log("Delete:", theater.id)}
                         className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
                       >
                         <TrashIcon className="w-5 h-5" />
@@ -187,7 +231,7 @@ export default function TheaterOne() {
       </div>
 
       {/* Add Theater Modal */}
-      <Dialog
+      {/* <Dialog
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         className="relative z-50"
@@ -195,7 +239,9 @@ export default function TheaterOne() {
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="mx-auto max-w-2xl w-full rounded-lg bg-white p-6 dark:bg-gray-800">
-            <Dialog.Title className="text-lg font-medium mb-4">Thêm rạp mới</Dialog.Title>
+            <Dialog.Title className="text-lg font-medium mb-4">
+              Thêm rạp mới
+            </Dialog.Title>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -204,8 +250,10 @@ export default function TheaterOne() {
                     type="text"
                     id="name"
                     required
-                    value={newTheater.name || ''}
-                    onChange={e => setNewTheater({...newTheater, name: e.target.value})}
+                    value={newTheater.name || ""}
+                    onChange={(e) =>
+                      setNewTheater({ ...newTheater, name: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -214,8 +262,10 @@ export default function TheaterOne() {
                     type="text"
                     id="code"
                     required
-                    value={newTheater.code || ''}
-                    onChange={e => setNewTheater({...newTheater, code: e.target.value})}
+                    value={newTheater.code || ""}
+                    onChange={(e) =>
+                      setNewTheater({ ...newTheater, code: e.target.value })
+                    }
                   />
                 </div>
                 <div className="col-span-2">
@@ -224,8 +274,10 @@ export default function TheaterOne() {
                     type="text"
                     id="address"
                     required
-                    value={newTheater.address || ''}
-                    onChange={e => setNewTheater({...newTheater, address: e.target.value})}
+                    value={newTheater.address || ""}
+                    onChange={(e) =>
+                      setNewTheater({ ...newTheater, address: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -234,8 +286,10 @@ export default function TheaterOne() {
                     type="text"
                     id="city"
                     required
-                    value={newTheater.city || ''}
-                    onChange={e => setNewTheater({...newTheater, city: e.target.value})}
+                    value={newTheater.city || ""}
+                    onChange={(e) =>
+                      setNewTheater({ ...newTheater, city: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -244,8 +298,10 @@ export default function TheaterOne() {
                     type="text"
                     id="district"
                     required
-                    value={newTheater.district || ''}
-                    onChange={e => setNewTheater({...newTheater, district: e.target.value})}
+                    value={newTheater.district || ""}
+                    onChange={(e) =>
+                      setNewTheater({ ...newTheater, district: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -253,8 +309,13 @@ export default function TheaterOne() {
                   <Input
                     type="tel"
                     id="phone"
-                    value={newTheater.phoneNumber || ''}
-                    onChange={e => setNewTheater({...newTheater, phoneNumber: e.target.value})}
+                    value={newTheater.phoneNumber || ""}
+                    onChange={(e) =>
+                      setNewTheater({
+                        ...newTheater,
+                        phoneNumber: e.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div>
@@ -262,8 +323,10 @@ export default function TheaterOne() {
                   <Input
                     type="email"
                     id="email"
-                    value={newTheater.email || ''}
-                    onChange={e => setNewTheater({...newTheater, email: e.target.value})}
+                    value={newTheater.email || ""}
+                    onChange={(e) =>
+                      setNewTheater({ ...newTheater, email: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -272,8 +335,13 @@ export default function TheaterOne() {
                     type="number"
                     id="totalSeats"
                     required
-                    value={newTheater.totalSeats || ''}
-                    onChange={e => setNewTheater({...newTheater, totalSeats: parseInt(e.target.value)})}
+                    value={newTheater.totalSeats || ""}
+                    onChange={(e) =>
+                      setNewTheater({
+                        ...newTheater,
+                        totalSeats: parseInt(e.target.value),
+                      })
+                    }
                   />
                 </div>
                 <div>
@@ -282,8 +350,13 @@ export default function TheaterOne() {
                     type="number"
                     id="totalRooms"
                     required
-                    value={newTheater.totalRooms || ''}
-                    onChange={e => setNewTheater({...newTheater, totalRooms: parseInt(e.target.value)})}
+                    value={newTheater.totalRooms || ""}
+                    onChange={(e) =>
+                      setNewTheater({
+                        ...newTheater,
+                        totalRooms: parseInt(e.target.value),
+                      })
+                    }
                   />
                 </div>
                 <div>
@@ -291,7 +364,12 @@ export default function TheaterOne() {
                   <Select
                     options={statusOptions}
                     value={newTheater.status}
-                    onChange={(value) => setNewTheater({...newTheater, status: value as Theater['status']})}
+                    onChange={(value) =>
+                      setNewTheater({
+                        ...newTheater,
+                        status: value as Theater["status"],
+                      })
+                    }
                     placeholder="Chọn trạng thái"
                     className="dark:bg-dark-900"
                   />
@@ -316,7 +394,7 @@ export default function TheaterOne() {
             </form>
           </Dialog.Panel>
         </div>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }

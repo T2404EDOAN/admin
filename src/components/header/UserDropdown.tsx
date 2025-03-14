@@ -1,10 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { Link } from "react-router";
-
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const [userData, setUserData] = useState({
+    id: "",
+    fullName: "",
+    email: "",
+    avatarUrl: "/images/user/owner.jpg",
+  });
+
+  useEffect(() => {
+    const getUserData = async () => {
+      try {
+        const id = JSON.parse(localStorage.getItem("userData"))?.id;
+        console.log("UserId from localStorage:", id);
+
+        if (!id) {
+          console.log("No userId found in localStorage");
+          return;
+        }
+
+        const response = await axios.get(
+          `http://localhost:8081/api/users/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        console.log("API Response:", response.data);
+
+        if (response.data) {
+          setUserData(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data:", error.response || error);
+      }
+    };
+
+    getUserData();
+  }, []);
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -20,10 +59,15 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
         <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <img src="/images/user/owner.jpg" alt="User" />
+          <img
+            src={userData.avatarUrl || "/images/user/owner.jpg"}
+            alt="User"
+          />
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">Hieu Dz</span>
+        <span className="block mr-1 font-medium text-theme-sm">
+          {userData.fullName}
+        </span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
@@ -51,10 +95,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            Hieu Minh
+            {userData.fullName}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            randomuser@pimjo.com
+            {userData.email}
           </span>
         </div>
 

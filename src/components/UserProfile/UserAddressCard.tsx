@@ -3,14 +3,83 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import axios from "axios";
+import { useState, useEffect, useCallback } from "react";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+
+  // State lưu trữ thông tin user
+  const [userData, setUserData] = useState(null);
+  const [addressInput, setAddressInput] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedUser = localStorage.getItem("userData");
+        if (!storedUser) throw new Error("User data not found in localStorage");
+
+        const { id } = JSON.parse(storedUser);
+        if (!id) throw new Error("User ID missing");
+
+        const response = await axios.get(
+          `http://localhost:8081/api/users/${id}`
+        );
+        setUserData(response.data);
+        setAddressInput(response.data.address || "");
+      } catch (error) {
+        console.error("Error fetching user data:", error.message);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  const handleOpenModal = useCallback(() => {
+    if (userData) {
+      setAddressInput(userData.address || "");
+      setSubmitError("");
+      openModal();
+    }
+  }, [userData, openModal]);
+
+  const handleAddressChange = useCallback((e) => {
+    setAddressInput(e.target.value);
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!userData) return;
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const dataToUpdate = {
+        ...userData,
+        address: addressInput || userData.address,
+      };
+
+      const response = await axios.put(
+        `http://localhost:8081/api/users/${userData.id}`,
+        dataToUpdate,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      setUserData(response.data);
+      closeModal();
+    } catch (error) {
+      setSubmitError(
+        error.response?.data?.message ||
+          "Failed to update address. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -19,48 +88,21 @@ export default function UserAddressCard() {
             <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
               Address
             </h4>
-
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Country
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States.
-                </p>
-              </div>
-
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
                   City/State
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Postal Code
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  TAX ID
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  {userData?.address || "Not set"}
                 </p>
               </div>
             </div>
           </div>
 
           <button
-            onClick={openModal}
+            type="button"
+            onClick={handleOpenModal}
             className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
           >
             <svg
@@ -82,6 +124,7 @@ export default function UserAddressCard() {
           </button>
         </div>
       </div>
+
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
@@ -92,36 +135,36 @@ export default function UserAddressCard() {
               Update your details to keep your profile up-to-date.
             </p>
           </div>
-          <form className="flex flex-col">
-            <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Country</Label>
-                  <Input type="text" value="United States" />
-                </div>
 
-                <div>
-                  <Label>City/State</Label>
-                  <Input type="text" value="Arizona, United States." />
-                </div>
-
-                <div>
-                  <Label>Postal Code</Label>
-                  <Input type="text" value="ERT 2489" />
-                </div>
-
-                <div>
-                  <Label>TAX ID</Label>
-                  <Input type="text" value="AS4568384" />
-                </div>
+          <form onSubmit={handleSubmit}>
+            {submitError && (
+              <div className="px-2 mb-4 text-sm text-red-500">
+                {submitError}
               </div>
+            )}
+            <div className="px-2 mb-6">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                name="address"
+                type="text"
+                value={addressInput}
+                onChange={handleAddressChange}
+                placeholder="Enter your address"
+              />
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Close
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={closeModal}
+                disabled={isSubmitting}
+              >
+                Cancel
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button type="submit" size="sm" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Save Changes"}
               </Button>
             </div>
           </form>

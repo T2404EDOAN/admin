@@ -5,10 +5,13 @@ import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import DemographicCard from "../../components/ecommerce/DemographicCard";
 import PageMeta from "../../components/common/PageMeta";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Home() {
+  // const { user } = useAuth();
   return (
     <>
+      {/* <h2>{user.fullname}</h2> */}
       <PageMeta
         title="React.js Ecommerce Dashboard | TailAdmin - React.js Admin Dashboard Template"
         description="This is React.js Ecommerce Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
