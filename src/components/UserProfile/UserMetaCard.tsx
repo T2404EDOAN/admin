@@ -25,7 +25,7 @@ export default function UserMetaCard() {
         }
 
         const response = await axios.get(
-          `http://localhost:8081/api/users/${id}`,
+          `http://localhost:8085/api/users/${id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,

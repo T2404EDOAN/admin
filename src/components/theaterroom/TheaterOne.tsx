@@ -85,7 +85,7 @@ export default function TheaterOne() {
     const fetchTableData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:8081/api/theaters");
+        const response = await axios.get("http://localhost:8085/api/theaters");
 
         // Lưu toàn bộ dữ liệu vào state
         setTheaters(response.data);

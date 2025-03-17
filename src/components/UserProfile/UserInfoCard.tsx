@@ -35,7 +35,7 @@ export default function UserInfoCard() {
         }
 
         const response = await axios.get(
-          `http://localhost:8081/api/users/${id}`,
+          `http://localhost:8085/api/users/${id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -82,7 +82,7 @@ export default function UserInfoCard() {
       }
 
       const response = await axios.put(
-        `http://localhost:8081/api/users/${id}`,
+        `http://localhost:8085/api/users/${id}`,
         formData,
         {
           headers: {

@@ -17,22 +17,22 @@ TailAdmin provides essential UI components and layouts for building feature-rich
 
 ### Quick Links
 
-- [✨ Visit Website](https://tailadmin.com)
-- [📄 Documentation](https://tailadmin.com/docs)
-- [⬇️ Download](https://tailadmin.com/download)
-- [🖌️ Figma Design File (Community Edition)](https://www.figma.com/community/file/1214477970819985778)
-- [⚡ Get PRO Version](https://tailadmin.com/pricing)
+- [✨ Visit Website](http://tailadmin.com)
+- [📄 Documentation](http://tailadmin.com/docs)
+- [⬇️ Download](http://tailadmin.com/download)
+- [🖌️ Figma Design File (Community Edition)](http://www.figma.com/community/file/1214477970819985778)
+- [⚡ Get PRO Version](http://tailadmin.com/pricing)
 
 ### Demos
 
-- [Free Version](https://free-react-demo.tailadmin.com/)
-- [Pro Version](https://react-demo.tailadmin.com)
+- [Free Version](http://free-react-demo.tailadmin.com/)
+- [Pro Version](http://react-demo.tailadmin.com)
 
 ### Other Versions
 
-- [HTML Version](https://github.com/TailAdmin/tailadmin-free-tailwind-dashboard-template)
-- [Next.js Version](https://github.com/TailAdmin/free-nextjs-admin-dashboard)
-- [Vue.js Version](https://github.com/TailAdmin/vue-tailwind-admin-dashboard)
+- [HTML Version](http://github.com/TailAdmin/tailadmin-free-tailwind-dashboard-template)
+- [Next.js Version](http://github.com/TailAdmin/free-nextjs-admin-dashboard)
+- [Vue.js Version](http://github.com/TailAdmin/vue-tailwind-admin-dashboard)
 
 ## Installation
 
@@ -47,7 +47,7 @@ To get started with TailAdmin, ensure you have the following prerequisites insta
 Clone the repository using the following command:
 
 ```bash
-git clone https://github.com/TailAdmin/free-react-tailwind-admin-dashboard.git
+git clone http://github.com/TailAdmin/free-react-tailwind-admin-dashboard.git
 ```
 
 > Windows Users: place the repository near the root of your drive if you face issues while cloning.
@@ -102,7 +102,7 @@ All components are built with React and styled using Tailwind CSS for easy custo
 - Complete Figma design file
 - Email support
 
-To learn more about pro version features and pricing, visit our [pricing page](https://tailadmin.com/pricing).
+To learn more about pro version features and pricing, visit our [pricing page](http://tailadmin.com/pricing).
 
 ## Changelog
 
@@ -118,7 +118,7 @@ To learn more about pro version features and pricing, visit our [pricing page](h
 
 - Run npm install or yarn install to update dependencies.
 - Check for any style changes or compatibility issues.
-- Refer to the Tailwind CSS v4 [Migration Guide](https://tailwindcss.com/docs/upgrade-guide) on this release. if needed.
+- Refer to the Tailwind CSS v4 [Migration Guide](http://tailwindcss.com/docs/upgrade-guide) on this release. if needed.
 - This update keeps the project up to date with the latest Tailwind improvements. 🚀
 
 ### Version 2.0.0 - [February 2025]
@@ -146,7 +146,7 @@ A major update with comprehensive redesign and modern React patterns implementat
 - Migrated charts to ApexCharts
 - Revised authentication system
 
-[Read more](https://tailadmin.com/docs/update-logs/react) on this release.
+[Read more](http://tailadmin.com/docs/update-logs/react) on this release.
 
 ### Version 1.3.7 - [June 20, 2024]
 
