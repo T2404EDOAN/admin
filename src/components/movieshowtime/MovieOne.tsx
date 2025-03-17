@@ -24,7 +24,7 @@ interface Showtime {
   price: number;
 }
 
-// Update Movie interface
+// Update Movie interface to only use genre IDs
 interface Movie {
   id: number;
   title: string;
@@ -41,14 +41,20 @@ interface Movie {
   productionCountry?: string | null;
   releaseDate: string;
   endDate?: string | null;
-  ageRating: string; // Changed from enum to string
+  ageRating: "P" | "C13" | "C16" | "C18"; // Changed to match enum values
   language?: string | null;
   subtitles?: string | null;
   rating: number;
   ratingCount: number;
-  status: string; // Changed from enum to string
-  genres: any[]; // Update to match API response
+  status: "COMING_SOON" | "NOW_SHOWING" | "ENDED"; // Update to match backend enum
+  genres: number[]; // Change to array of IDs only
   showtimes: Showtime[];
+}
+
+// Add this interface near the top with other interfaces
+interface Genre {
+  id: number;
+  name: string;
 }
 
 const formTabs = [
@@ -71,8 +77,9 @@ export default function MovieOne() {
   const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
   // Update initial state
   const [newMovie, setNewMovie] = useState<Partial<Movie>>({
-    status: "Sắp chiếu",
-    ageRating: "P - Phim dành cho mọi lứa tuổi"
+    status: "COMING_SOON",
+    ageRating: "P", // Set default to P
+    genres: [], // This remains an empty array, but now it's an array of numbers
   });
   const [newGenre, setNewGenre] = useState({ name: "" });
   const [newCategory, setNewCategory] = useState<
@@ -83,28 +90,19 @@ export default function MovieOne() {
   });
   const [isEditing, setIsEditing] = useState(false);
 
-  // Update age rating options
+  // Update age rating options to match backend enum descriptions
   const ageRatingOptions = [
-    { value: "P - Phim dành cho mọi lứa tuổi", label: "P - Phổ biến" },
-    { value: "C13 - Phim cấm khán giả dưới 13 tuổi", label: "C13" },
-    { value: "C16 - Phim cấm khán giả dưới 16 tuổi", label: "C16" },
-    { value: "C18 - Phim cấm khán giả dưới 18 tuổi", label: "C18" },
+    { value: "P", label: "P - Phim dành cho mọi lứa tuổi" },
+    { value: "C13", label: "C13 - Cấm khán giả dưới 13 tuổi" },
+    { value: "C16", label: "C16 - Cấm khán giả dưới 16 tuổi" },
+    { value: "C18", label: "C18 - Cấm khán giả dưới 18 tuổi" },
   ];
 
-  // Update status options
+  // Update status options to match backend enum
   const statusOptions = [
-    { value: "Sắp chiếu", label: "Sắp chiếu" },
-    { value: "Đang chiếu", label: "Đang chiếu" },
-    { value: "Đã kết thúc", label: "Đã kết thúc" },
-  ];
-
-  const genreOptions = [
-    { value: "ACTION", label: "Hành động" },
-    { value: "COMEDY", label: "Hài" },
-    { value: "DRAMA", label: "Chính kịch" },
-    { value: "HORROR", label: "Kinh dị" },
-    { value: "ROMANCE", label: "Tình cảm" },
-    { value: "SCIFI", label: "Khoa học viễn tưởng" },
+    { value: "COMING_SOON", label: "Sắp chiếu" },
+    { value: "NOW_SHOWING", label: "Đang chiếu" },
+    { value: "ENDED", label: "Đã kết thúc" },
   ];
 
   const countryOptions = [
@@ -143,12 +141,17 @@ export default function MovieOne() {
     }
   };
 
+  // Update fetchMovieDetails to format genres as array of IDs
   const fetchMovieDetails = async (id: number) => {
     try {
       const response = await fetch(`http://localhost:8085/api/movies/all/${id}`);
       if (!response.ok) throw new Error('Failed to fetch movie details');
       const data = await response.json();
-      setNewMovie(data);
+      const formattedData = {
+        ...data,
+        genres: data.genres?.map((g: any) => g.id) || [] // Only keep the IDs
+      };
+      setNewMovie(formattedData);
       setIsEditing(true);
       setIsModalOpen(true);
     } catch (error) {
@@ -180,17 +183,37 @@ export default function MovieOne() {
       
       setIsModalOpen(false);
       setIsEditing(false);
-      setNewMovie({ status: 'Sắp chiếu', ageRating: 'P - Phim dành cho mọi lứa tuổi' });
+      setNewMovie({ 
+        status: 'COMING_SOON', 
+        ageRating: 'P',
+        genres: [] // Make sure to reset genres array
+      });
       fetchMovies();
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
-  const handleGenreSubmit = (e: React.FormEvent) => {
+  const handleGenreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submit new genre:", newGenre);
-    setIsGenreModalOpen(false);
+    try {
+      const response = await fetch('http://localhost:8085/api/genres/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newGenre)
+      });
+
+      if (!response.ok) throw new Error('Failed to create genre');
+      
+      // Refresh genres list
+      await fetchGenres();
+      setIsGenreModalOpen(false);
+      setNewGenre({ name: '' });
+    } catch (error) {
+      console.error('Error creating genre:', error);
+    }
   };
 
   const handleCategorySubmit = (e: React.FormEvent) => {
@@ -203,6 +226,29 @@ export default function MovieOne() {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [genreOptions, setGenreOptions] = useState<Array<{value: number, label: string}>>([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
+
+  // Add this function to fetch genres
+  const fetchGenres = async () => {
+    try {
+      const response = await fetch('http://localhost:8085/api/genres');
+      if (!response.ok) throw new Error('Failed to fetch genres');
+      const data: Genre[] = await response.json();
+      setGenreOptions(data.map(genre => ({
+        value: genre.id,
+        label: genre.name
+      })));
+      setGenres(data); // Add this line
+    } catch (error) {
+      console.error('Error fetching genres:', error);
+    }
+  };
+
+  // Add useEffect to fetch genres when component mounts
+  useEffect(() => {
+    fetchGenres();
+  }, []);
 
   const handlePaginationChange = (page: number, pageSize?: number) => {
     setPagination(prev => ({
@@ -333,7 +379,7 @@ export default function MovieOne() {
                       {movie.title}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-[250px] bg-white dark:bg-gray-800 z-10">
-                      {movie.genres.map((genre) => genre.name).join(", ")}
+                      {movie.genres.map((genreId) => genreOptions.find(g => g.value === genreId)?.label).join(", ")}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                       {movie.duration} phút
@@ -349,7 +395,7 @@ export default function MovieOne() {
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                       <Badge size="sm" color="primary">
-                        {movie.ageRating}
+                        {ageRatingOptions.find(opt => opt.value === movie.ageRating)?.label || movie.ageRating}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
@@ -359,14 +405,14 @@ export default function MovieOne() {
                       <Badge
                         size="sm"
                         color={
-                          movie.status === "Đang chiếu"
+                          movie.status === "NOW_SHOWING"
                             ? "success"
-                            : movie.status === "Sắp chiếu"
+                            : movie.status === "COMING_SOON"
                             ? "warning"
                             : "error"
                         }
                       >
-                        {movie.status}
+                        {statusOptions.find(opt => opt.value === movie.status)?.label || movie.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-3">
@@ -464,9 +510,12 @@ export default function MovieOne() {
                               dropdownStyle={{ minWidth: "200px" }}
                               className="rounded-lg border border-gray-300"
                               placeholder="Chọn thể loại"
-                              value={newMovie.genres}
-                              onChange={(values) =>
-                                setNewMovie({ ...newMovie, genres: values })
+                              value={newMovie.genres || []}
+                              onChange={(values: number[]) =>
+                                setNewMovie({
+                                  ...newMovie,
+                                  genres: values // Just use the IDs directly
+                                })
                               }
                               options={genreOptions}
                               optionRender={(option) => (
@@ -518,7 +567,7 @@ export default function MovieOne() {
                         <Label>Giới hạn độ tuổi*</Label>
                         <Select
                           options={ageRatingOptions}
-                          value={newMovie.ageRating}
+                          value={newMovie.ageRating || "P"}
                           onChange={(value) =>
                             setNewMovie({
                               ...newMovie,
@@ -588,6 +637,25 @@ export default function MovieOne() {
                             setNewMovie({
                               ...newMovie,
                               releaseDate: dateString,
+                            })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="endDate">Ngày kết thúc</Label>
+                        <DatePicker
+                          style={{ width: "100%", height: "40px" }}
+                          format="YYYY-MM-DD"
+                          placeholder="Chọn ngày kết thúc"
+                          value={
+                            newMovie.endDate
+                              ? dayjs(newMovie.endDate)
+                              : null
+                          }
+                          onChange={(date, dateString) =>
+                            setNewMovie({
+                              ...newMovie,
+                              endDate: dateString,
                             })
                           }
                         />
@@ -691,42 +759,40 @@ export default function MovieOne() {
       >
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="mx-auto max-w-sm w-full rounded-lg bg-white p-6 dark:bg-gray-800">
+          <Dialog.Panel className="mx-auto max-w-md w-full rounded-lg bg-white p-6 dark:bg-gray-800">
             <Dialog.Title className="text-lg font-medium mb-4">
               Thêm thể loại phim
             </Dialog.Title>
-            <form onSubmit={handleCategorySubmit} className="space-y-4">
+
+            {/* Genre List */}
+            <div className="mb-6">
+              <h3 className="text-sm font-medium mb-2">Danh sách thể loại hiện tại:</h3>
+              <div className="max-h-40 overflow-y-auto border rounded-lg divide-y">
+                {genres.map((genre) => (
+                  <div key={genre.id} className="px-3 py-2 text-sm flex items-center justify-between">
+                    <span>{genre.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Genre Form */}
+            <form onSubmit={handleGenreSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="categoryName">Tên thể loại*</Label>
+                <Label htmlFor="genreName">Tên thể loại mới*</Label>
                 <Input
                   type="text"
-                  id="categoryName"
+                  id="genreName"
                   required
                   maxLength={50}
                   placeholder="Nhập tên thể loại"
-                  value={newCategory.name}
+                  value={newGenre.name}
                   onChange={(e) =>
-                    setNewCategory({ ...newCategory, name: e.target.value })
+                    setNewGenre({ ...newGenre, name: e.target.value })
                   }
                 />
               </div>
-              <div>
-                <Label htmlFor="categoryDescription">Mô tả</Label>
-                <textarea
-                  id="categoryDescription"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 transition-all duration-200"
-                  rows={4}
-                  placeholder="Nhập mô tả cho thể loại"
-                  value={newCategory.description}
-                  onChange={(e) =>
-                    setNewCategory({
-                      ...newCategory,
-                      description: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsGenreModalOpen(false)}
