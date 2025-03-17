@@ -23,7 +23,7 @@ import Room from "./pages/TheaterRoom/Room";
 
 import Movies from "./pages/MovieShowtime/Movie";
 import Showtime from "./pages/MovieShowtime/Showtime";
-import Seat from "./pages/TheaterRoom/Seat";
+
 
 export default function App() {
   return (
@@ -52,7 +52,7 @@ export default function App() {
             {/* Tables */}
             <Route path="/theater" element={<Theater />} />
             <Route path="/room" element={<Room />} />
-            <Route path="/seat" element={<Seat />} />
+
 
             {/* Ui Elements */}
             <Route path="/alerts" element={<Alerts />} />

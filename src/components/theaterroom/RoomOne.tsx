@@ -6,12 +6,23 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, TrashIcon, PlusIcon, ViewfinderCircleIcon } from "@heroicons/react/24/outline";
 import { Dialog } from "@headlessui/react";
 import { useState } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
+
+interface Seat {
+  id: string;
+  name: string;
+  status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE';
+}
+
+interface SeatRow {
+  row: string;
+  seats: Seat[];
+}
 
 interface Room {
   id: number;
@@ -49,6 +60,39 @@ const tableData: Room[] = [
   },
 ];
 
+const seatData: SeatRow[] = [
+  {
+    row: 'A',
+    seats: [
+      { id: 'A1', name: 'A1', status: 'AVAILABLE' },
+      { id: 'A2', name: 'A2', status: 'AVAILABLE' },
+      { id: 'A3', name: 'A3', status: 'MAINTENANCE' },
+      { id: 'A4', name: 'A4', status: 'OCCUPIED' },
+      { id: 'A5', name: 'A5', status: 'AVAILABLE' },
+    ]
+  },
+  {
+    row: 'B',
+    seats: [
+      { id: 'B1', name: 'B1', status: 'AVAILABLE' },
+      { id: 'B2', name: 'B2', status: 'AVAILABLE' },
+      { id: 'B3', name: 'B3', status: 'AVAILABLE' },
+      { id: 'B4', name: 'B4', status: 'AVAILABLE' },
+      { id: 'B5', name: 'B5', status: 'AVAILABLE' },
+    ]
+  },
+  {
+    row: 'C',
+    seats: [
+      { id: 'C1', name: 'C1', status: 'AVAILABLE' },
+      { id: 'C2', name: 'C2', status: 'OCCUPIED' },
+      { id: 'C3', name: 'C3', status: 'AVAILABLE' },
+      { id: 'C4', name: 'C4', status: 'AVAILABLE' },
+      { id: 'C5', name: 'C5', status: 'AVAILABLE' },
+    ]
+  }
+];
+
 export default function RoomOne() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,6 +100,8 @@ export default function RoomOne() {
     status: 'ACTIVE',
     roomType: '2D'
   });
+  const [isSeatsModalOpen, setIsSeatsModalOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   const roomTypeOptions = [
     { value: "2D", label: "2D" },
@@ -74,6 +120,11 @@ export default function RoomOne() {
     e.preventDefault();
     console.log('Submit:', newRoom);
     setIsModalOpen(false);
+  };
+
+  const handleViewSeats = (room: Room) => {
+    setSelectedRoom(room);
+    setIsSeatsModalOpen(true);
   };
 
   return (
@@ -155,14 +206,19 @@ export default function RoomOne() {
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleViewSeats(room)}
+                        className="p-1 text-green-500 hover:bg-green-50 rounded-full transition-colors"
+                        title="Xem sơ đồ ghế"
+                      >
+                        <ViewfinderCircleIcon className="w-5 h-5" />
+                      </button>
                       <button 
-                       
                         className="p-1 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                       >
                         <PencilIcon className="w-5 h-5" />
                       </button>
                       <button 
-                      
                         className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
                       >
                         <TrashIcon className="w-5 h-5" />
@@ -244,6 +300,83 @@ export default function RoomOne() {
                 </button>
               </div>
             </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
+
+      {/* Seats Modal */}
+      <Dialog
+        open={isSeatsModalOpen}
+        onClose={() => setIsSeatsModalOpen(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-3xl w-full rounded-lg bg-white p-6 dark:bg-gray-800">
+            <Dialog.Title className="text-lg font-medium mb-4">
+              Sơ đồ ghế - {selectedRoom?.name}
+            </Dialog.Title>
+            <div className="space-y-6">
+              {/* Legend */}
+              <div className="flex gap-4 justify-end">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-100 dark:bg-blue-900 rounded"></div>
+                  <span>Trống</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                  <span>Đã đặt</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-100 dark:bg-red-900 rounded"></div>
+                  <span>Bảo trì</span>
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                {/* Screen */}
+                <div className="text-center mb-8 p-2 bg-gray-200 dark:bg-gray-600 rounded w-2/3 mx-auto">
+                  Màn hình
+                </div>
+
+                {/* Seats */}
+                <div className="space-y-4">
+                  {seatData.map((row) => (
+                    <div key={row.row} className="flex items-center gap-4">
+                      <div className="w-8 font-bold">{row.row}</div>
+                      <div className="flex gap-2 flex-1">
+                        {row.seats.map((seat) => (
+                          <div
+                            key={seat.id}
+                            className={`
+                              w-8 h-8 rounded flex items-center justify-center text-sm cursor-pointer
+                              ${seat.status === 'AVAILABLE' ? 'bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800' : ''}
+                              ${seat.status === 'OCCUPIED' ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed' : ''}
+                              ${seat.status === 'MAINTENANCE' ? 'bg-red-100 dark:bg-red-900 cursor-not-allowed' : ''}
+                            `}
+                            title={`Ghế ${seat.name} - ${
+                              seat.status === 'AVAILABLE' ? 'Trống' :
+                              seat.status === 'OCCUPIED' ? 'Đã đặt' : 'Đang bảo trì'
+                            }`}
+                          >
+                            {seat.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setIsSeatsModalOpen(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
           </Dialog.Panel>
         </div>
       </Dialog>

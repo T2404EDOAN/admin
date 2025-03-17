@@ -13,9 +13,9 @@ import React, { useEffect, useState } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
-import { Select as AntSelect, Space, DatePicker } from "antd";
+import { Select as AntSelect, Space, DatePicker, Pagination } from "antd";
 import dayjs from "dayjs";
-import axios from "axios";
+
 interface Showtime {
   id?: number;
   startTime: string;
@@ -24,65 +24,32 @@ interface Showtime {
   price: number;
 }
 
+// Update Movie interface
 interface Movie {
   id: number;
   title: string;
-  originalTitle?: string;
-  trailerUrl?: string;
-  posterUrl?: string;
-  backdropUrl?: string;
+  originalTitle?: string | null;
+  trailerUrl?: string | null;
+  posterUrl?: string | null;
+  backdropUrl?: string | null;
   duration: number;
-  description?: string;
-  shortDescription?: string;
-  categoryId?: number;
-  director?: string;
-  cast?: string;
-  productionCompany?: string;
-  productionCountry?: string;
+  description?: string | null;
+  shortDescription?: string | null;
+  director?: string | null;
+  cast?: string | null;
+  productionCompany?: string | null;
+  productionCountry?: string | null;
   releaseDate: string;
-  endDate?: string;
-  ageRating: "P" | "C13" | "C16" | "C18";
-  language?: string;
-  subtitles?: string;
+  endDate?: string | null;
+  ageRating: string; // Changed from enum to string
+  language?: string | null;
+  subtitles?: string | null;
   rating: number;
   ratingCount: number;
-  status: "COMING_SOON" | "NOW_SHOWING" | "ENDED";
-  genres?: string[]; // Change from genre?: string
-  country?: string;
-  synopsis?: string;
-  showtimes?: Showtime[];
+  status: string; // Changed from enum to string
+  genres: any[]; // Update to match API response
+  showtimes: Showtime[];
 }
-
-const movieData: Movie[] = [
-  {
-    id: 1,
-    title: "Avengers: Endgame",
-    originalTitle: "Avengers: Endgame",
-    duration: 181,
-    description: "After Thanos...",
-    posterUrl: "https://example.com/poster1.jpg",
-    ageRating: "C13",
-    status: "ENDED",
-    releaseDate: "2023-01-01",
-    endDate: "2023-02-01",
-    rating: 4.5,
-    ratingCount: 1000,
-  },
-  {
-    id: 2,
-    title: "Spider-Man: No Way Home",
-    originalTitle: "Spider-Man: No Way Home",
-    duration: 148,
-    description: "Peter Parker's secret...",
-    posterUrl: "https://example.com/poster2.jpg",
-    ageRating: "C13",
-    status: "NOW_SHOWING",
-    releaseDate: "2023-06-01",
-    endDate: "2023-07-01",
-    rating: 4.8,
-    ratingCount: 2000,
-  },
-];
 
 const formTabs = [
   { name: "Thông tin cơ bản", icon: "info" },
@@ -102,9 +69,10 @@ export default function MovieOne() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
+  // Update initial state
   const [newMovie, setNewMovie] = useState<Partial<Movie>>({
-    status: "COMING_SOON",
-    ageRating: "P",
+    status: "Sắp chiếu",
+    ageRating: "P - Phim dành cho mọi lứa tuổi"
   });
   const [newGenre, setNewGenre] = useState({ name: "" });
   const [newCategory, setNewCategory] = useState<
@@ -113,18 +81,21 @@ export default function MovieOne() {
     name: "",
     description: "",
   });
+  const [isEditing, setIsEditing] = useState(false);
 
+  // Update age rating options
   const ageRatingOptions = [
-    { value: "P", label: "P - Phổ biến" },
-    { value: "C13", label: "C13" },
-    { value: "C16", label: "C16" },
-    { value: "C18", label: "C18" },
+    { value: "P - Phim dành cho mọi lứa tuổi", label: "P - Phổ biến" },
+    { value: "C13 - Phim cấm khán giả dưới 13 tuổi", label: "C13" },
+    { value: "C16 - Phim cấm khán giả dưới 16 tuổi", label: "C16" },
+    { value: "C18 - Phim cấm khán giả dưới 18 tuổi", label: "C18" },
   ];
 
+  // Update status options
   const statusOptions = [
-    { value: "COMING_SOON", label: "Sắp chiếu" },
-    { value: "NOW_SHOWING", label: "Đang chiếu" },
-    { value: "ENDED", label: "Đã kết thúc" },
+    { value: "Sắp chiếu", label: "Sắp chiếu" },
+    { value: "Đang chiếu", label: "Đang chiếu" },
+    { value: "Đã kết thúc", label: "Đã kết thúc" },
   ];
 
   const genreOptions = [
@@ -144,10 +115,76 @@ export default function MovieOne() {
     { value: "GB", label: "Anh" },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
+
+  const fetchMovies = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `http://localhost:8085/api/movies/all?pageNo=${pagination.current - 1}&pageSize=${pagination.pageSize}&sortBy=title&sortDir=asc`
+      );
+      
+      if (!response.ok) throw new Error('Failed to fetch movies');
+      const data = await response.json();
+      setMovies(data.content || []);
+      setPagination(prev => ({
+        ...prev,
+        total: data.totalElements || 0
+      }));
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+      setMovies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMovieDetails = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:8085/api/movies/all/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch movie details');
+      const data = await response.json();
+      setNewMovie(data);
+      setIsEditing(true);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching movie details:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchMovies();
+  }, [pagination.current, pagination.pageSize]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submit:", newMovie);
-    setIsModalOpen(false);
+  
+    const url = isEditing 
+      ? `http://localhost:8085/api/movies/all/${newMovie.id}`
+      : 'http://localhost:8085/api/movies/create';
+      
+    try {
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newMovie)
+      });
+  
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      setIsModalOpen(false);
+      setIsEditing(false);
+      setNewMovie({ status: 'Sắp chiếu', ageRating: 'P - Phim dành cho mọi lứa tuổi' });
+      fetchMovies();
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
   const handleGenreSubmit = (e: React.FormEvent) => {
@@ -166,24 +203,14 @@ export default function MovieOne() {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [movies, setMovies] = useState<Movie[]>([]);
-  useEffect(() => {
-    const fetchMovies = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get("https://skystar.io.vn/api/movies");
 
-        // Lưu toàn bộ dữ liệu vào state
-        setMovies(response.data.content);
-        console.log(response.data.content);
-      } catch (error) {
-        console.error("Lỗi khi lấy danh sách phim:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMovies();
-  }, []);
+  const handlePaginationChange = (page: number, pageSize?: number) => {
+    setPagination(prev => ({
+      ...prev,
+      current: page,
+      pageSize: pageSize || prev.pageSize
+    }));
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -332,24 +359,20 @@ export default function MovieOne() {
                       <Badge
                         size="sm"
                         color={
-                          movie.status === "NOW_SHOWING"
+                          movie.status === "Đang chiếu"
                             ? "success"
-                            : movie.status === "COMING_SOON"
+                            : movie.status === "Sắp chiếu"
                             ? "warning"
                             : "error"
                         }
                       >
-                        {movie.status === "NOW_SHOWING"
-                          ? "Đang chiếu"
-                          : movie.status === "COMING_SOON"
-                          ? "Sắp chiếu"
-                          : "Đã kết thúc"}
+                        {movie.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => console.log("Edit:", movie.id)}
+                          onClick={() => fetchMovieDetails(movie.id)}
                           className="p-1 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                         >
                           <PencilIcon className="w-5 h-5" />
@@ -370,6 +393,20 @@ export default function MovieOne() {
         </div>
       </div>
 
+      <div className="p-4 flex justify-end border-t border-gray-200">
+        <Pagination
+          current={pagination.current}
+          pageSize={pagination.pageSize}
+          total={pagination.total}
+          showTotal={(total, range) => `${range[0]}-${range[1]} trên ${total} phim`}
+          onChange={handlePaginationChange}
+          onShowSizeChange={handlePaginationChange}
+          showSizeChanger
+          defaultPageSize={10}
+          pageSizeOptions={['10', '20', '50']}
+        />
+      </div>
+
       <Dialog
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -379,7 +416,7 @@ export default function MovieOne() {
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="mx-auto max-w-2xl w-full rounded-lg bg-white p-6 dark:bg-gray-800">
             <Dialog.Title className="text-lg font-medium mb-4">
-              Thêm phim mới
+              {isEditing ? 'Chỉnh sửa phim' : 'Thêm phim mới'}
             </Dialog.Title>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Tab.Group selectedIndex={activeTab} onChange={setActiveTab}>
