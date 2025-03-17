@@ -59,8 +59,8 @@ const navItems: NavItem[] = [
     icon: <TableIcon />,
     subItems: [
       { name: "Rạp", path: "/theater", pro: false },
-      { name: "Phòng", path: "/room", pro: false },
-      { name: "Ghế", path: "/seat", pro: false }
+      { name: "Phòng", path: "/room", pro: false }
+  
     ],
   },
   // {
