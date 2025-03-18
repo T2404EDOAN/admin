@@ -20,17 +20,22 @@ interface Theater {
   code: string;
   address: string;
   city: string;
-  district: string;
-  latitude?: number;
-  longitude?: number;
-  phoneNumber: string;
-  email?: string;
-  description?: string;
-  openingHours?: string;
+  district: string; // Add this line
   totalSeats: number;
   totalRooms: number;
-  facilities?: string;
   status: "ACTIVE" | "MAINTENANCE" | "CLOSED";
+  createdAt: string;
+  updatedAt: string;
+  // Optional fields
+  location?: string | null;
+  theaterUrl?: string | null;
+  longitude?: number | null;
+  phoneNumber?: string | null;
+  email?: string | null;
+  description?: string | null;
+  openingHours?: string | null;
+  facilities?: string | null;
+  deletedAt?: string | null;
 }
 
 const tableData: Theater[] = [
@@ -41,10 +46,19 @@ const tableData: Theater[] = [
     address: "123 Example Street",
     city: "Ho Chi Minh",
     district: "District 1",
+    location: null,
+    theaterUrl: null,
+    longitude: null,
     phoneNumber: "0123456789",
+    email: null,
+    description: null,
+    openingHours: null,
     totalSeats: 500,
     totalRooms: 5,
     status: "ACTIVE",
+    createdAt: "2022-01-01T00:00:00Z",
+    updatedAt: "2022-01-01T00:00:00Z",
+    deletedAt: null,
   },
   {
     id: 2,
@@ -53,10 +67,19 @@ const tableData: Theater[] = [
     address: "456 Sample Road",
     city: "Ho Chi Minh",
     district: "District 2",
+    location: null,
+    theaterUrl: null,
+    longitude: null,
     phoneNumber: "0987654321",
+    email: null,
+    description: null,
+    openingHours: null,
     totalSeats: 400,
     totalRooms: 4,
     status: "MAINTENANCE",
+    createdAt: "2022-01-01T00:00:00Z",
+    updatedAt: "2022-01-01T00:00:00Z",
+    deletedAt: null,
   },
   // Add more sample data as needed
 ];
@@ -74,11 +97,57 @@ export default function TheaterOne() {
     { value: "CLOSED", label: "Đóng cửa" },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submit:", newTheater);
-    setIsModalOpen(false);
+    try {
+      const payload = {
+        ...newTheater,
+        phoneNumber: newTheater.phoneNumber || null,
+        email: newTheater.email || null,
+        description: newTheater.description || null,
+        openingHours: newTheater.openingHours || null,
+        theaterUrl: newTheater.theaterUrl || null,
+      };
+
+      console.log("=== Theater Data Being Sent ===");
+      console.log("Action:", newTheater.id ? "Update" : "Create");
+      console.log("Payload:", JSON.stringify(payload, null, 2));
+
+      if (newTheater.id) {
+        const updateResponse = await axios.put(
+          `http://localhost:8081/api/theaters/${newTheater.id}`,
+          payload
+        );
+        console.log("=== Update Response ===");
+        console.log("Status:", updateResponse.status);
+        console.log("Data:", updateResponse.data);
+      } else {
+        const createResponse = await axios.post(
+          "http://localhost:8081/api/theaters",
+          payload
+        );
+        console.log("=== Create Response ===");
+        console.log("Status:", createResponse.status);
+        console.log("Data:", createResponse.data);
+      }
+
+      const response = await axios.get("http://localhost:8081/api/theaters");
+      setTheaters(response.data);
+      setIsModalOpen(false);
+      setNewTheater({ status: "ACTIVE" });
+    } catch (error) {
+      console.error("=== Error Details ===");
+      console.error("Message:", error.message);
+      console.error("Response:", error.response?.data);
+      alert("Có lỗi xảy ra khi lưu dữ liệu!");
+    }
   };
+
+  const handleEdit = (theater: Theater) => {
+    setNewTheater(theater);
+    setIsModalOpen(true);
+  };
+
   const [loading, setLoading] = useState(false);
   const [theaters, setTheaters] = useState<Theater[]>([]);
   useEffect(() => {
@@ -99,6 +168,36 @@ export default function TheaterOne() {
 
     fetchTableData();
   }, []);
+
+  // Add new states for confirmation dialog
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [theaterToDelete, setTheaterToDelete] = useState<Theater | null>(null);
+
+  // Update handleDelete to show confirmation dialog
+  const handleDelete = (theater: Theater) => {
+    setTheaterToDelete(theater);
+    setIsConfirmDeleteOpen(true);
+  };
+
+  // Add handleConfirmDelete
+  const handleConfirmDelete = async () => {
+    if (theaterToDelete) {
+      try {
+        await axios.delete(
+          `http://localhost:8081/api/theaters/${theaterToDelete.id}`
+        );
+        setTheaters(
+          theaters.filter((theater) => theater.id !== theaterToDelete.id)
+        );
+        setIsConfirmDeleteOpen(false);
+        setTheaterToDelete(null);
+      } catch (error) {
+        console.error("Lỗi:", error.message);
+        console.error("Chi tiết:", error.response?.data);
+        alert("Xóa không thành công, vui lòng thử lại!");
+      }
+    }
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -174,7 +273,12 @@ export default function TheaterOne() {
               {theaters.map((theater) => (
                 <TableRow key={theater.id}>
                   <TableCell className="px-5 py-4 text-gray-800 text-theme-sm dark:text-white/90">
-                    {theater.name}
+                    <div>
+                      <span className="font-medium">{theater.name}</span>
+                      <span className="block text-xs text-gray-400">
+                        {new Date(theater.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     {theater.code}
@@ -188,7 +292,10 @@ export default function TheaterOne() {
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {theater.phoneNumber}
+                    {theater.phoneNumber && <div>{theater.phoneNumber}</div>}
+                    {theater.email && (
+                      <div className="text-xs">{theater.email}</div>
+                    )}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     {theater.totalSeats} seats / {theater.totalRooms} rooms
@@ -210,13 +317,13 @@ export default function TheaterOne() {
                   <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => console.log("Edit:", theater.id)}
+                        onClick={() => handleEdit(theater)}
                         className="p-1 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                       >
                         <PencilIcon className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => console.log("Delete:", theater.id)}
+                        onClick={() => handleDelete(theater)}
                         className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
                       >
                         <TrashIcon className="w-5 h-5" />
@@ -230,17 +337,20 @@ export default function TheaterOne() {
         </div>
       </div>
 
-      {/* Add Theater Modal */}
-      {/* <Dialog
+      {/* Add/Edit Theater Modal */}
+      <Dialog
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setNewTheater({ status: "ACTIVE" });
+        }}
         className="relative z-50"
       >
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="mx-auto max-w-2xl w-full rounded-lg bg-white p-6 dark:bg-gray-800">
             <Dialog.Title className="text-lg font-medium mb-4">
-              Thêm rạp mới
+              {newTheater.id ? "Chỉnh sửa rạp" : "Thêm rạp mới"}
             </Dialog.Title>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -257,7 +367,7 @@ export default function TheaterOne() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="code">Mã rạp*</Label>
+                  <Label htmlFor="code">Mã code *</Label>
                   <Input
                     type="text"
                     id="code"
@@ -305,31 +415,6 @@ export default function TheaterOne() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Số điện thoại</Label>
-                  <Input
-                    type="tel"
-                    id="phone"
-                    value={newTheater.phoneNumber || ""}
-                    onChange={(e) =>
-                      setNewTheater({
-                        ...newTheater,
-                        phoneNumber: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    type="email"
-                    id="email"
-                    value={newTheater.email || ""}
-                    onChange={(e) =>
-                      setNewTheater({ ...newTheater, email: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
                   <Label htmlFor="totalSeats">Tổng số ghế*</Label>
                   <Input
                     type="number"
@@ -360,7 +445,7 @@ export default function TheaterOne() {
                   />
                 </div>
                 <div>
-                  <Label>Trạng thái</Label>
+                  <Label>Trạng thái*</Label>
                   <Select
                     options={statusOptions}
                     value={newTheater.status}
@@ -379,7 +464,10 @@ export default function TheaterOne() {
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setNewTheater({ status: "ACTIVE" });
+                  }}
                   className="px-4 py-2 text-gray-500 hover:text-gray-700"
                 >
                   Hủy
@@ -388,13 +476,46 @@ export default function TheaterOne() {
                   type="submit"
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                 >
-                  Lưu
+                  {newTheater.id ? "Cập nhật" : "Lưu"}
                 </button>
               </div>
             </form>
           </Dialog.Panel>
         </div>
-      </Dialog> */}
+      </Dialog>
+
+      {/* Add Confirmation Dialog */}
+      <Dialog
+        open={isConfirmDeleteOpen}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-sm w-full rounded-lg bg-white p-6 dark:bg-gray-800">
+            <Dialog.Title className="text-lg font-medium mb-4">
+              Xác nhận xóa
+            </Dialog.Title>
+            <p className="mb-4">
+              Bạn có chắc chắn muốn xóa rạp "{theaterToDelete?.name}" không?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsConfirmDeleteOpen(false)}
+                className="px-4 py-2 text-gray-500 hover:text-gray-700"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                Xóa
+              </button>
+            </div>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </div>
   );
 }
