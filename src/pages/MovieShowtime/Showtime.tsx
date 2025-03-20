@@ -8,7 +8,7 @@ export default function Showtime() {
   return (
     <>
       <PageMeta
-        title="Lịch chiếu"
+        title="Quản Lý Lịch chiếu"
         description="This is React.js Basic Tables Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
       />
       <PageBreadcrumb pageTitle="Lịch chiếu" />

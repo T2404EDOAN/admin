@@ -13,7 +13,7 @@ import React, { useEffect, useState } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Select from "../form/Select";
-import { Select as AntSelect, Space, DatePicker, Pagination } from "antd";
+import { Select as AntSelect, Space, DatePicker, Pagination, Image } from "antd";
 import dayjs from "dayjs";
 
 interface Showtime {
@@ -47,7 +47,7 @@ interface Movie {
   rating: number;
   ratingCount: number;
   status: "COMING_SOON" | "NOW_SHOWING" | "ENDED"; // Update to match backend enum
-  genres: number[]; // Change to array of IDs only
+  genres: { id: number; name: string }[]; // Change back to array of objects
   showtimes: Showtime[];
 }
 
@@ -86,12 +86,23 @@ export default function MovieOne() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenreModalOpen, setIsGenreModalOpen] = useState(false);
-  // Update initial state
-  const [newMovie, setNewMovie] = useState<Partial<Movie>>({
+  // Update initial movie state with all default values
+  const initialMovieState: Partial<Movie> = {
     status: "COMING_SOON",
-    ageRating: "P", // Set default to P
-    genres: [], // This remains an empty array, but now it's an array of numbers
-  });
+    ageRating: "P",
+    genres: [],
+    productionCountry: "",
+    title: "",
+    duration: 0,
+    releaseDate: "",
+    description: "",
+    cast: "",
+    director: "",
+    trailerUrl: "",
+    posterUrl: "",
+  };
+
+  const [newMovie, setNewMovie] = useState<Partial<Movie>>(initialMovieState);
   const [newGenre, setNewGenre] = useState({ name: "" });
   const [newCategory, setNewCategory] = useState<
     Omit<MovieCategory, "id" | "created_at" | "updated_at">
@@ -101,6 +112,27 @@ export default function MovieOne() {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
+
+  // Add new state for image preview
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+
+  // Modify the state to store file instead of base64
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+
+  // Update image upload handler
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPosterFile(file);
+      // Create temporary URL for preview
+      const previewUrl = URL.createObjectURL(file);
+      setPosterPreview(previewUrl);
+      setNewMovie({
+        ...newMovie,
+        posterUrl: previewUrl
+      });
+    }
+  };
 
   // Update age rating options to match backend enum descriptions
   const ageRatingOptions = [
@@ -153,17 +185,29 @@ export default function MovieOne() {
     }
   };
 
-  // Update fetchMovieDetails to format genres as array of IDs
+  // Update fetchMovieDetails function
   const fetchMovieDetails = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8085/api/movies/all/${id}`);
+      const response = await fetch(`http://localhost:8085/api/movies/${id}`);
       if (!response.ok) throw new Error('Failed to fetch movie details');
       const data = await response.json();
-      const formattedData = {
+      
+      // Cập nhật form với dữ liệu và chuyển đổi định dạng
+      setNewMovie({
         ...data,
-        genres: data.genres?.map((g: any) => g.id) || [] // Only keep the IDs
-      };
-      setNewMovie(formattedData);
+        genres: data.genres.map((g: any) => ({
+          id: g.id,
+          name: g.name
+        })),
+        releaseDate: data.releaseDate ? dayjs(data.releaseDate).format('YYYY-MM-DD') : '',
+        endDate: data.endDate ? dayjs(data.endDate).format('YYYY-MM-DD') : '',
+      });
+
+      // If there's a poster URL, set it for preview
+      if (data.posterUrl) {
+        setPosterPreview(data.posterUrl);
+      }
+      
       setIsEditing(true);
       setIsModalOpen(true);
     } catch (error) {
@@ -210,36 +254,76 @@ export default function MovieOne() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Add resetForm function
+  const resetForm = () => {
+    setNewMovie(initialMovieState);
+    setPosterPreview(null);
+    setPosterFile(null);
+    setErrors({});
+    setActiveTab(0);
+    // Cleanup any object URLs
+    if (newMovie.posterUrl && newMovie.posterUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(newMovie.posterUrl);
+    }
+  };
+
+  // Update modal close handler
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    resetForm();
+    setIsEditing(false);
+  };
+
+  // Update handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
     }
-  
+
+    // Prepare movie data
+    const movieData = {
+      ...newMovie,
+      posterUrl: null, // Remove posterUrl from JSON
+      genres: newMovie.genres?.map(g => ({ id: g.id })),
+      genreIds: newMovie.genres?.map(g => g.id)
+    };
+
+    // Create form data
+    const formData = new FormData();
+    
+    // Convert movie data to Blob with proper Content-Type
+    const movieBlob = new Blob([JSON.stringify(movieData)], {
+      type: 'application/json'
+    });
+    formData.append('movie', movieBlob);
+
+    // Add poster file if exists
+    if (posterFile) {
+      formData.append('posterFile', posterFile, posterFile.name);
+    }
+
     const url = isEditing 
-      ? `http://localhost:8085/api/movies/all/${newMovie.id}`
+      ? `http://localhost:8085/api/movies/${newMovie.id}`
       : 'http://localhost:8085/api/movies/create';
       
     try {
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newMovie)
+        body: formData
       });
-  
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      setIsModalOpen(false);
-      setIsEditing(false);
-      setNewMovie({ 
-        status: 'COMING_SOON', 
-        ageRating: 'P',
-        genres: [] // Make sure to reset genres array
-      });
-      fetchMovies();
+      // Cleanup
+      if (posterPreview && posterPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(posterPreview);
+      }
+      handleCloseModal();
+      await fetchMovies();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -344,6 +428,12 @@ export default function MovieOne() {
                   </TableCell>
                   <TableCell
                     isHeader
+                    className="w-24 px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                  >
+                    Poster
+                  </TableCell>
+                  <TableCell
+                    isHeader
                     className="w-64 px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 sticky left-[64px] bg-white dark:bg-gray-800 z-20"
                   >
                     Tên phim
@@ -426,11 +516,19 @@ export default function MovieOne() {
                       <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-0 bg-white dark:bg-gray-800 z-10">
                         {index + 1}
                       </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <Image
+                          width={80}
+                          src={movie.posterUrl || 'https://placehold.co/80x120?text=No+Image'}
+                          alt={movie.title}
+                          fallback="https://placehold.co/80x120?text=Error"
+                        />
+                      </TableCell>
                       <TableCell className="px-5 py-4 text-gray-800 text-theme-sm dark:text-white/90 sticky left-[64px] bg-white dark:bg-gray-800 z-10">
                         {movie.title}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-[320px] bg-white dark:bg-gray-800 z-10">
-                        {movie.genres.map((genreId) => genreOptions.find(g => g.value === genreId)?.label).join(", ")}
+                        {movie.genres.map((genre) => genre.name).join(", ")}
                       </TableCell>
                       <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                         {movie.duration} phút
@@ -461,8 +559,8 @@ export default function MovieOne() {
                             movie.status === "NOW_SHOWING"
                               ? "success"
                               : movie.status === "COMING_SOON"
-                              ? "warning"
-                              : "error"
+                              ? "secondary"
+                              : "danger"
                           }
                         >
                           {statusOptions.find(opt => opt.value === movie.status)?.label || movie.status}
@@ -509,7 +607,7 @@ export default function MovieOne() {
 
       <Dialog
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}  // Update this line
         className="relative z-50"
       >
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
@@ -568,11 +666,14 @@ export default function MovieOne() {
                               dropdownStyle={{ minWidth: "200px" }}
                               className={`rounded-lg border ${errors.genres ? 'border-red-500' : 'border-gray-300'}`}
                               placeholder="Chọn thể loại"
-                              value={newMovie.genres || []}
+                              value={newMovie.genres?.map(g => g.id)}
                               onChange={(values: number[]) => {
                                 setNewMovie({
                                   ...newMovie,
-                                  genres: values
+                                  genres: values.map(id => ({
+                                    id,
+                                    name: genreOptions.find(g => g.value === id)?.label || ''
+                                  }))
                                 });
                                 setErrors({ ...errors, genres: undefined });
                               }}
@@ -612,14 +713,20 @@ export default function MovieOne() {
                       </div>
                       <div>
                         <Label>Quốc gia*</Label>
-                        <Select
-                          options={countryOptions}
-                          value={newMovie.country}
+                        <AntSelect
+                          showSearch
+                          style={{ width: "100%", height: "40px" }}
+                          value={newMovie.productionCountry}
                           onChange={(value) => {
-                            setNewMovie({ ...newMovie, country: value });
+                            setNewMovie({ ...newMovie, productionCountry: value });
                             setErrors({ ...errors, productionCountry: undefined });
                           }}
                           placeholder="Chọn quốc gia"
+                          optionFilterProp="label"
+                          filterSort={(optionA, optionB) =>
+                            (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
+                          }
+                          options={countryOptions}
                         />
                         {errors.productionCountry && (
                           <span className="text-red-500 text-sm mt-1">{errors.productionCountry}</span>
@@ -627,9 +734,10 @@ export default function MovieOne() {
                       </div>
                       <div>
                         <Label>Giới hạn độ tuổi*</Label>
-                        <Select
-                          options={ageRatingOptions}
-                          value={newMovie.ageRating || "P"}
+                        <AntSelect
+                          showSearch
+                          style={{ width: "100%", height: "40px" }}
+                          value={newMovie.ageRating}
                           onChange={(value) => {
                             setNewMovie({
                               ...newMovie,
@@ -638,6 +746,11 @@ export default function MovieOne() {
                             setErrors({ ...errors, ageRating: undefined });
                           }}
                           placeholder="Chọn giới hạn độ tuổi"
+                          optionFilterProp="label"
+                          filterSort={(optionA, optionB) =>
+                            (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
+                          }
+                          options={ageRatingOptions}
                         />
                         {errors.ageRating && (
                           <span className="text-red-500 text-sm mt-1">{errors.ageRating}</span>
@@ -645,8 +758,9 @@ export default function MovieOne() {
                       </div>
                       <div>
                         <Label>Trạng thái</Label>
-                        <Select
-                          options={statusOptions}
+                        <AntSelect
+                          showSearch
+                          style={{ width: "100%", height: "40px" }}
                           value={newMovie.status}
                           onChange={(value) => {
                             setNewMovie({
@@ -656,6 +770,11 @@ export default function MovieOne() {
                             setErrors({ ...errors, status: undefined });
                           }}
                           placeholder="Chọn trạng thái"
+                          optionFilterProp="label"
+                          filterSort={(optionA, optionB) =>
+                            (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
+                          }
+                          options={statusOptions}
                         />
                         {errors.status && (
                           <span className="text-red-500 text-sm mt-1">{errors.status}</span>
@@ -788,17 +907,57 @@ export default function MovieOne() {
                       </div>
                       <div>
                         <Label htmlFor="posterUrl">Đường dẫn Poster</Label>
-                        <Input
-                          type="url"
-                          id="posterUrl"
-                          value={newMovie.posterUrl || ""}
-                          onChange={(e) =>
-                            setNewMovie({
-                              ...newMovie,
-                              posterUrl: e.target.value,
-                            })
-                          }
-                        />
+                        <div className="space-y-4">
+                          <div className="flex gap-2">
+                            <Input
+                              type="url"
+                              id="posterUrl"
+                              value={newMovie.posterUrl || ""}
+                              onChange={(e) =>
+                                setNewMovie({
+                                  ...newMovie,
+                                  posterUrl: e.target.value,
+                                })
+                              }
+                              placeholder="Nhập URL hình ảnh hoặc tải lên"
+                            />
+                            <label className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 cursor-pointer inline-flex items-center">
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                              />
+                              <PlusIcon className="w-5 h-5" />
+                            </label>
+                          </div>
+                          
+                          {/* Image Preview */}
+                          {(posterPreview || newMovie.posterUrl) && (
+                            <div className="relative w-[200px] h-[300px] border rounded-lg overflow-hidden">
+                              <Image
+                                src={posterPreview || newMovie.posterUrl || ''}
+                                alt="Movie poster preview"
+                                className="object-cover"
+                                width={200}
+                                height={300}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPosterPreview(null);
+                                  setNewMovie({
+                                    ...newMovie,
+                                    posterUrl: '',
+                                  });
+                                }}
+                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Tab.Panel>
@@ -808,7 +967,7 @@ export default function MovieOne() {
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}  // Update this line
                   className="px-4 py-2 text-gray-500 hover:text-gray-700"
                 >
                   Hủy
