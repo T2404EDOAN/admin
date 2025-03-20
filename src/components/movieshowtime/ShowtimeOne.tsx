@@ -8,12 +8,13 @@ import {
 import Badge from "../ui/badge/Badge";
 import { PencilIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { Dialog } from "@headlessui/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
-import Select from "../form/Select";
 import { Tab } from '@headlessui/react';
 import ShowtimeSeatConfig from './ShowtimeSeatConfig';
+import { Select, DatePicker, TimePicker, Pagination, message } from 'antd';
+import dayjs from 'dayjs';
 
 interface Theater {
   id: number;
@@ -35,21 +36,24 @@ interface Theater {
 }
 
 interface Showtime {
-  id?: number;
-  movieId: number;
-  theaterId: number;
+  id: number;
+  theatresName: string;
+  theaterAddress: string;
+  movieName: string;
+  theaterUrl: string | null;
+  theaterLocation: string | null;
   roomId: number;
-  showDate: string;
-  showTime: string;
-  endTime: string;
   basePrice: number;
   vipPrice: number;
-  couplePrice?: number;
-  status: 'ACTIVE' | 'CANCELLED' | 'SOLD_OUT';
-  seats?: ShowtimeSeat[];
-  movieName?: string;
-  theaterName?: string;
-  roomName?: string;
+  couplePrice: number | null;
+  showDate: string | null;
+  endDate: string | null;
+  showTime: string | null;
+  endTime: string | null;
+  roomName: string | null;
+  status: 'ACTIVE' | 'CANCELLED' | 'SOLD_OUT' | null;
+  movieId: number;
+  theaterId: number;
 }
 
 interface ShowtimeSeat {
@@ -69,151 +73,317 @@ interface Seat {
   status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
 }
 
-const tableData: Theater[] = [
-  {
-    id: 1,
-    name: "CGV Vincom Center",
-    code: "CGV-VC-01",
-    address: "123 Example Street",
-    city: "Ho Chi Minh",
-    district: "District 1",
-    phoneNumber: "0123456789",
-    totalSeats: 500,
-    totalRooms: 5,
-    status: "ACTIVE",
-  },
-  {
-    id: 2,
-    name: "Lotte Cinema",
-    code: "LTC-D2-01",
-    address: "456 Sample Road",
-    city: "Ho Chi Minh",
-    district: "District 2",
-    phoneNumber: "0987654321",
-    totalSeats: 400,
-    totalRooms: 4,
-    status: "MAINTENANCE",
-  },
-  // Add more sample data as needed
-];
-
-const showtimeData: Showtime[] = [
-  {
-    id: 1,
-    movieName: "Avengers: Endgame",
-    theaterName: "CGV Vincom Center",
-    roomName: "Cinema 01",
-    showDate: "2024-01-20",
-    showTime: "10:00",
-    endTime: "12:30",
-    movieId: 1,
-    theaterId: 1,
-    roomId: 1,
-    basePrice: 90000,
-    vipPrice: 120000,
-    couplePrice: 200000,
-    status: "ACTIVE"
-  },
-  {
-    id: 2,
-    movieName: "Avengers: Endgame",
-    theaterName: "CGV Vincom Center",
-    roomName: "Cinema 02",
-    showDate: "2024-01-20",
-    showTime: "13:00",
-    endTime: "15:30",
-    movieId: 1,
-    theaterId: 1,
-    roomId: 2,
-    basePrice: 90000,
-    vipPrice: 120000,
-    couplePrice: 200000,
-    status: "ACTIVE"
-  },
-  {
-    id: 3,
-    movieName: "Spider-Man: No Way Home",
-    theaterName: "Lotte Cinema",
-    roomName: "Cinema 01",
-    showDate: "2024-01-20",
-    showTime: "09:30",
-    endTime: "11:45",
-    movieId: 2,
-    theaterId: 2,
-    roomId: 1,
-    basePrice: 85000,
-    vipPrice: 110000,
-    couplePrice: 180000,
-    status: "SOLD_OUT"
-  },
-  {
-    id: 4,
-    movieName: "Spider-Man: No Way Home",
-    theaterName: "Lotte Cinema",
-    roomName: "Cinema 03",
-    showDate: "2024-01-20",
-    showTime: "15:00",
-    endTime: "17:15",
-    movieId: 2,
-    theaterId: 2,
-    roomId: 3,
-    basePrice: 85000,
-    vipPrice: 110000,
-    couplePrice: 180000,
-    status: "CANCELLED"
-  }
-];
+interface ShowtimeSeatResponse {
+  id: number;
+  seatId: number;
+  seatName: string;
+  status: 'AVAILABLE' | 'RESERVED' | 'SOLD';
+}
 
 const formTabs = [
   { name: 'Thông tin lịch chiếu', icon: 'calendar' },
   { name: 'Cài đặt giá vé', icon: 'money' },
 ];
 
+interface Movie {
+  movieId: number;  // Changed from id to movieId
+  title: string;
+}
+
+interface TheaterCombo {
+  theaterId: number;
+  theaterName: string;
+}
+
+interface Room {
+  id: number;
+  name: string;
+}
+
+// Add this helper function for fuzzy search near the top of the file
+const fuzzySearch = (str: string, search: string): boolean => {
+  const searchLower = search.toLowerCase();
+  const strLower = (str || '').toLowerCase();
+  
+  let searchIndex = 0;
+  for (let i = 0; i < strLower.length && searchIndex < searchLower.length; i++) {
+    if (strLower[i] === searchLower[searchIndex]) {
+      searchIndex++;
+    }
+  }
+  return searchIndex === searchLower.length;
+};
+
 export default function ShowtimeOne() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newShowtime, setNewShowtime] = useState<Partial<Showtime>>({
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    basePrice: 0,
+    vipPrice: 0,
+    couplePrice: 0,
+    showDate: '',  // Changed from null
+    showTime: '',  // Changed from null
+    endTime: '',   // Changed from null
   });
   const [selectedSeats, setSelectedSeats] = useState<ShowtimeSeat[]>([]);
   const [isSeatConfigOpen, setIsSeatConfigOpen] = useState(false);
   const [selectedShowtimeId, setSelectedShowtimeId] = useState<number | null>(null);
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+  const [showtimeSeats, setShowtimeSeats] = useState<ShowtimeSeatResponse[]>([]);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [theaters, setTheaters] = useState<TheaterCombo[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [disabledTimes, setDisabledTimes] = useState<string[]>([]);
+  const [isAutoModalOpen, setIsAutoModalOpen] = useState(false);
+  const [autoShowtime, setAutoShowtime] = useState({
+    movieId: undefined,
+    theatresId: undefined,
+    showDate: '',
+    endDate: '',
+    basePrice: 90000,
+    vipPrice: 145000,
+    couplePrice: 180000,
+    status: 'ACTIVE'
+  });
 
-  const movieOptions = [
-    { value: "1", label: "Avengers: Endgame" },
-    { value: "2", label: "Spider-Man: No Way Home" },
-  ];
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
-  const theaterOptions = [
-    { value: "1", label: "CGV Vincom Center" },
-    { value: "2", label: "Lotte Cinema" },
-  ];
-
-  const roomOptions = [
-    { value: "1", label: "Phòng 1" },
-    { value: "2", label: "Phòng 2" },
-  ];
-
-  const statusOptions = [
-    { value: "ACTIVE", label: "Hoạt động" },
-    { value: "CANCELLED", label: "Đã hủy" },
-    { value: "SOLD_OUT", label: "Hết vé" },
-  ];
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Submit:', newShowtime);
-    setIsModalOpen(false);
+  const fetchShowtimes = async (page = 1, size = 10) => {
+    try {
+      const response = await fetch(`http://localhost:8085/api/showtimes?page=${page - 1}&size=${size}`);
+      const data = await response.json();
+      setShowtimes(data.content || []);
+      setTotalItems(data.totalElements || 0);
+    } catch (error) {
+      console.error('Error fetching showtimes:', error);
+    }
   };
 
-  const handleSeatConfig = (showtimeId: number) => {
-    setSelectedShowtimeId(showtimeId);
-    setIsSeatConfigOpen(true);
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setCurrentPage(page);
+    setPageSize(pageSize || 10);
+    fetchShowtimes(page, pageSize);
+  };
+
+  useEffect(() => {
+    fetchShowtimes(currentPage, pageSize);
+    const fetchMovies = async () => {
+      try {
+        const response = await fetch('http://localhost:8085/api/movies/allMovieCombo');
+        const data = await response.json();
+        setMovies(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching movies:', error);
+        setMovies([]); // Set empty array on error
+      }
+    };
+
+    const fetchTheaters = async () => {
+      try {
+        const response = await fetch('http://localhost:8085/api/theaters/allTheaterCombo');
+        const data = await response.json();
+        setTheaters(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching theaters:', error);
+        setTheaters([]);
+      }
+    };
+
+    fetchMovies();
+    fetchTheaters();
+  }, []);
+
+  const fetchRooms = async (theaterId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8085/api/theaters/${theaterId}/rooms`);
+      const data = await response.json();
+      setRooms(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      setRooms([]);
+    }
+  };
+
+  const fetchAvailableTimes = async (roomId: number, showDate: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8085/api/showtimes/available-times?roomId=${roomId}&showDate=${showDate}`
+      );
+      const data = await response.json();
+      setDisabledTimes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching available times:', error);
+      setDisabledTimes([]);
+    }
+  };
+
+  const handleTheaterChange = (value: string) => {
+    setNewShowtime({...newShowtime, theaterId: parseInt(value), roomId: undefined});
+    fetchRooms(parseInt(value));
+  };
+
+  // Replace static movieOptions with safe mapping
+  const movieOptions = [{
+    label: 'Danh sách phim',
+    options: Array.isArray(movies) ? movies.map(movie => ({
+      label: <span>{movie.title}</span>,
+      value: movie.movieId
+    })) : []
+  }];
+
+  const theaterOptions = [{
+    label: 'Danh sách rạp',
+    options: theaters.map(theater => ({
+      label: <span>{theater.theaterName}</span>,
+      value: theater.theaterId
+    }))
+  }];
+
+  const roomOptions = [{
+    label: 'Danh sách phòng',
+    options: rooms.map(room => ({
+      label: <span>{room.name}</span>,
+      value: room.id
+    }))
+  }];
+
+  const statusOptions = [{
+    label: 'Trạng thái',
+    options: [
+      { label: <span>Hoạt động</span>, value: 'ACTIVE' },
+      { label: <span>Đã hủy</span>, value: 'CANCELLED' },
+      { label: <span>Hết vé</span>, value: 'SOLD_OUT' }
+    ]
+  }];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const showtimeData = {
+        movieId: newShowtime.movieId,
+        theaterId: newShowtime.theaterId,
+        roomId: newShowtime.roomId,
+        showDate: newShowtime.showDate || null,
+        showTime: newShowtime.showTime ? newShowtime.showTime : null,
+        endTime: newShowtime.endTime ? newShowtime.endTime : null,
+        basePrice: newShowtime.basePrice,
+        vipPrice: newShowtime.vipPrice,
+        couplePrice: newShowtime.couplePrice,
+        status: newShowtime.status
+      };
+
+      console.log('Submitting data:', showtimeData); // Debug log
+
+      const response = await fetch('http://localhost:8085/api/showtimes/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(showtimeData),
+      });
+      
+      if (response.ok) {
+        // Refresh showtimes list
+        const fetchShowtimes = async () => {
+          const response = await fetch('http://localhost:8085/api/showtimes');
+          const data = await response.json();
+          setShowtimes(data.content || []);
+        };
+        await fetchShowtimes();
+        setIsModalOpen(false);
+        setNewShowtime({
+          status: 'ACTIVE',
+          basePrice: 0,
+          vipPrice: 0,
+          couplePrice: 0,
+          showDate: null,
+          endDate: null,
+          showTime: null,
+          endTime: null,
+        }); // Reset form
+      } else {
+        console.error('Failed to create showtime');
+      }
+    } catch (error) {
+      console.error('Error creating showtime:', error);
+    }
+  };
+
+  const handleSeatConfig = async (showtimeId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8085/api/showtimes/${showtimeId}/seats`);
+      const data = await response.json();
+      setShowtimeSeats(data);
+      setSelectedShowtimeId(showtimeId);
+      setIsSeatConfigOpen(true);
+    } catch (error) {
+      console.error('Error fetching seats:', error);
+    }
   };
 
   const handleSaveSeats = (seats: ShowtimeSeat[]) => {
     console.log('Saved seats:', seats);
     setIsSeatConfigOpen(false);
+  };
+
+  const handleAutoGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:8085/api/showtimes/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(autoShowtime),
+      });
+      
+      if (response.ok) {
+        const fetchShowtimes = async () => {
+          const response = await fetch('http://localhost:8085/api/showtimes');
+          const data = await response.json();
+          setShowtimes(data.content || []);
+        };
+        await fetchShowtimes();
+        setIsAutoModalOpen(false);
+      } else {
+        console.error('Failed to generate showtimes');
+      }
+    } catch (error) {
+      console.error('Error generating showtimes:', error);
+    }
+  };
+
+  // Replace the existing filteredShowtimes with this new implementation
+  const filteredShowtimes = showtimes.filter((showtime) => {
+    if (!searchQuery) return true;
+    
+    return (
+      fuzzySearch(showtime.theatresName || '', searchQuery) ||
+      fuzzySearch(showtime.movieName || '', searchQuery)
+    );
+  });
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa lịch chiếu này?')) {
+      try {
+        const response = await fetch(`http://localhost:8085/api/showtimes/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          message.success('Xóa lịch chiếu thành công');
+          fetchShowtimes(currentPage, pageSize);
+        } else {
+          message.error('Xóa lịch chiếu thất bại');
+        }
+      } catch (error) {
+        message.error('Có lỗi xảy ra khi xóa lịch chiếu');
+        console.error('Error deleting showtime:', error);
+      }
+    }
   };
 
   return (
@@ -222,11 +392,18 @@ export default function ShowtimeOne() {
         <div className="w-64">
           <Input
             type="text"
-            placeholder="Tìm kiếm rạp..."
+            placeholder="Tìm kiếm phim, rạp..."  // Updated placeholder
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <button
+          onClick={() => setIsAutoModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+        >
+          <PlusIcon className="w-5 h-5" />
+          <span>Thêm lịch tự động</span>
+        </button>
         <button
           onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -265,12 +442,6 @@ export default function ShowtimeOne() {
                   Giờ kết thúc
                 </TableCell>
                 <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                  Giá vé thường
-                </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                  Giá vé VIP
-                </TableCell>
-                <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                   Trạng thái
                 </TableCell>
                 <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
@@ -280,7 +451,7 @@ export default function ShowtimeOne() {
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {showtimeData.map((showtime, index) => (
+              {filteredShowtimes.map((showtime, index) => (
                 <TableRow key={showtime.id}>
                   <TableCell className="px-5 py-4 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-0 bg-white dark:bg-gray-800 z-10">
                     {index + 1}
@@ -289,25 +460,19 @@ export default function ShowtimeOne() {
                     {showtime.movieName}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400 sticky left-[250px] bg-white dark:bg-gray-800 z-10">
-                    {showtime.theaterName}
+                    {showtime.theatresName}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {showtime.roomName}
+                    {showtime.roomName || '-'}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {showtime.showDate}
+                    {showtime.showDate || '-'}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {showtime.showTime}
+                    {showtime.showTime || '-'}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {showtime.endTime}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {showtime.basePrice?.toLocaleString()}đ
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {showtime.vipPrice?.toLocaleString()}đ
+                    {showtime.endTime || '-'}
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     <Badge
@@ -320,15 +485,13 @@ export default function ShowtimeOne() {
                           : "warning"
                       }
                     >
-                      {showtime.status === "ACTIVE" ? "Hoạt động" 
-                        : showtime.status === "CANCELLED" ? "Đã hủy" 
-                        : "Hết vé"}
+                      {showtime.status || 'Chưa xác định'}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => handleSeatConfig(showtime.id!)}
+                        onClick={() => handleSeatConfig(showtime.id)}
                         className="p-1 text-green-500 hover:bg-green-50 rounded-full transition-colors"
                         title="Cấu hình ghế"
                       >
@@ -343,7 +506,7 @@ export default function ShowtimeOne() {
                         <PencilIcon className="w-5 h-5" />
                       </button>
                       <button 
-                        onClick={() => console.log('Delete:', showtime.id)}
+                        onClick={() => handleDelete(showtime.id)}
                         className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
                       >
                         <TrashIcon className="w-5 h-5" />
@@ -354,6 +517,16 @@ export default function ShowtimeOne() {
               ))}
             </TableBody>
           </Table>
+          <div className="flex justify-end mt-4 px-4">
+            <Pagination
+              current={currentPage}
+              total={totalItems}
+              pageSize={pageSize}
+              onChange={handlePageChange}
+              showSizeChanger
+              showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} mục`}
+            />
+          </div>
         </div>
       </div>
 
@@ -396,55 +569,129 @@ export default function ShowtimeOne() {
                       <div>
                         <Label>Phim*</Label>
                         <Select
-                          options={movieOptions}
-                          value={newShowtime.movieId}
-                          onChange={(value) => setNewShowtime({...newShowtime, movieId: parseInt(value)})}
+                          style={{ width: '100%' }}
                           placeholder="Chọn phim"
+                          value={newShowtime.movieId}
+                          onChange={(value) => setNewShowtime({...newShowtime, movieId: value})}
+                          options={movieOptions}
                         />
                       </div>
                       <div>
                         <Label>Rạp chiếu*</Label>
                         <Select
-                          options={theaterOptions}
-                          value={newShowtime.theaterId}
-                          onChange={(value) => setNewShowtime({...newShowtime, theaterId: parseInt(value)})}
+                          style={{ width: '100%' }}
                           placeholder="Chọn rạp"
+                          value={newShowtime.theaterId}
+                          onChange={handleTheaterChange}
+                          options={theaterOptions}
                         />
                       </div>
                       <div>
                         <Label>Phòng chiếu*</Label>
                         <Select
-                          options={roomOptions}
-                          value={newShowtime.roomId}
-                          onChange={(value) => setNewShowtime({...newShowtime, roomId: parseInt(value)})}
+                          style={{ width: '100%' }}
                           placeholder="Chọn phòng"
-                        />
-                      </div>
-                      <div>
-                        <Label>Trạng thái</Label>
-                        <Select
-                          options={statusOptions}
-                          value={newShowtime.status}
-                          onChange={(value) => setNewShowtime({...newShowtime, status: value as Showtime['status']})}
-                          placeholder="Chọn trạng thái"
+                          value={newShowtime.roomId}
+                          onChange={(value) => {
+                            setNewShowtime({...newShowtime, roomId: value});
+                            if (value && newShowtime.showDate) {
+                              fetchAvailableTimes(value, newShowtime.showDate);
+                            }
+                          }}
+                          options={roomOptions}
+                          disabled={!newShowtime.theaterId}
                         />
                       </div>
                       <div>
                         <Label>Ngày chiếu*</Label>
-                        <Input
-                          type="date"
-                          required
-                          value={newShowtime.showDate || ''}
-                          onChange={e => setNewShowtime({...newShowtime, showDate: e.target.value})}
+                        <DatePicker 
+                          style={{ width: '100%' }}
+                          format="YYYY-MM-DD"
+                          placeholder="Chọn ngày chiếu"
+                          value={newShowtime.showDate ? dayjs(newShowtime.showDate) : null}
+                          onChange={(date) => {
+                            const formattedDate = date ? date.format('YYYY-MM-DD') : null;
+                            setNewShowtime({
+                              ...newShowtime, 
+                              showDate: formattedDate
+                            });
+                            if (formattedDate && newShowtime.roomId) {
+                              fetchAvailableTimes(newShowtime.roomId, formattedDate);
+                            }
+                          }}
                         />
                       </div>
                       <div>
                         <Label>Giờ bắt đầu*</Label>
-                        <Input
-                          type="time"
-                          required
-                          value={newShowtime.showTime || ''}
-                          onChange={e => setNewShowtime({...newShowtime, showTime: e.target.value})}
+                        <TimePicker
+                          style={{ width: '100%' }}
+                          format="HH:mm"
+                          placeholder="Chọn giờ bắt đầu"
+                          value={newShowtime.showTime ? dayjs(newShowtime.showTime, 'HH:mm') : null}
+                          onChange={(time) => setNewShowtime({
+                            ...newShowtime,
+                            showTime: time ? time.format('HH:mm') : null
+                          })}
+                          disabledTime={() => {
+                            // Create array of hours 0-8 and 23 (disabled hours outside 9-22)
+                            const disabledHours = [
+                              ...Array.from({ length: 9 }, (_, i) => i),
+                              ...Array.from({ length: 1 }, (_, i) => i + 24)
+                            ];
+                        
+                            // Add hours from disabled times from API
+                            const apiDisabledHours = disabledTimes.map(time => {
+                              try {
+                                return parseInt(time?.split(':')?.[0] || '0');
+                              } catch {
+                                return 0;
+                              }
+                            });
+                        
+                            return {
+                              disabledHours: () => [...new Set([...disabledHours, ...apiDisabledHours])],
+                              disabledMinutes: (hour) => {
+                                const matchingTime = disabledTimes.find(time => {
+                                  try {
+                                    return parseInt(time?.split(':')?.[0] || '0') === hour;
+                                  } catch {
+                                    return false;
+                                  }
+                                });
+                                if (matchingTime) {
+                                  try {
+                                    return [parseInt(matchingTime.split(':')[1])];
+                                  } catch {
+                                    return [];
+                                  }
+                                }
+                                return [];
+                              }
+                            };
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Giờ kết thúc*</Label>
+                        <TimePicker
+                          style={{ width: '100%' }}
+                          format="HH:mm"
+                          placeholder="Chọn giờ kết thúc"
+                          value={newShowtime.endTime ? dayjs(newShowtime.endTime, 'HH:mm') : null}
+                          onChange={(time) => setNewShowtime({
+                            ...newShowtime,
+                            endTime: time ? time.format('HH:mm') : null
+                          })}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Trạng thái</Label>
+                        <Select
+                          style={{ width: '100%' }}
+                          placeholder="Chọn trạng thái"
+                          value={newShowtime.status}
+                          onChange={(value) => setNewShowtime({...newShowtime, status: value})}
+                          options={statusOptions}
                         />
                       </div>
                     </div>
@@ -454,7 +701,7 @@ export default function ShowtimeOne() {
                   <Tab.Panel className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label>Giá vé thường*</Label>
+                        <Label>Giá vé thường (VNĐ)*</Label>
                         <Input
                           type="number"
                           min="0"
@@ -465,7 +712,7 @@ export default function ShowtimeOne() {
                         />
                       </div>
                       <div>
-                        <Label>Giá vé VIP*</Label>
+                        <Label>Giá vé VIP (VNĐ)*</Label>
                         <Input
                           type="number"
                           min="0"
@@ -476,7 +723,7 @@ export default function ShowtimeOne() {
                         />
                       </div>
                       <div>
-                        <Label>Giá vé Couple</Label>
+                        <Label>Giá vé Couple (VNĐ)</Label>
                         <Input
                           type="number"
                           min="0"
@@ -510,6 +757,117 @@ export default function ShowtimeOne() {
         </div>
       </Dialog>
 
+      {/* Add new modal for auto generation */}
+      <Dialog
+        open={isAutoModalOpen}
+        onClose={() => setIsAutoModalOpen(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-md w-full rounded-lg bg-white p-6 dark:bg-gray-800">
+            <Dialog.Title className="text-lg font-medium mb-4">
+              Tạo lịch chiếu tự động
+            </Dialog.Title>
+
+            <form onSubmit={handleAutoGenerate} className="space-y-4">
+              <div>
+                <Label>Phim*</Label>
+                <Select
+                  style={{ width: '100%' }}
+                  placeholder="Chọn phim"
+                  value={autoShowtime.movieId}
+                  onChange={(value) => setAutoShowtime({...autoShowtime, movieId: value})}
+                  options={movieOptions}
+                />
+              </div>
+              <div>
+                <Label>Rạp chiếu*</Label>
+                <Select
+                  style={{ width: '100%' }}
+                  placeholder="Chọn rạp"
+                  value={autoShowtime.theatresId}
+                  onChange={(value) => setAutoShowtime({...autoShowtime, theatresId: value})}
+                  options={theaterOptions}
+                />
+              </div>
+              <div>
+                <Label>Ngày bắt đầu*</Label>
+                <DatePicker 
+                  style={{ width: '100%' }}
+                  format="YYYY-MM-DD"
+                  placeholder="Chọn ngày bắt đầu"
+                  onChange={(date) => setAutoShowtime({
+                    ...autoShowtime,
+                    showDate: date ? date.format('YYYY-MM-DD') : ''
+                  })}
+                />
+              </div>
+              <div>
+                <Label>Ngày kết thúc*</Label>
+                <DatePicker 
+                  style={{ width: '100%' }}
+                  format="YYYY-MM-DD"
+                  placeholder="Chọn ngày kết thúc"
+                  onChange={(date) => setAutoShowtime({
+                    ...autoShowtime,
+                    endDate: date ? date.format('YYYY-MM-DD') : ''
+                  })}
+                />
+              </div>
+              <div>
+                <Label>Giá vé thường (VNĐ)*</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  required
+                  value={autoShowtime.basePrice}
+                  onChange={e => setAutoShowtime({...autoShowtime, basePrice: parseInt(e.target.value)})}
+                />
+              </div>
+              <div>
+                <Label>Giá vé VIP (VNĐ)*</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  required
+                  value={autoShowtime.vipPrice}
+                  onChange={e => setAutoShowtime({...autoShowtime, vipPrice: parseInt(e.target.value)})}
+                />
+              </div>
+              <div>
+                <Label>Giá vé Couple (VNĐ)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={autoShowtime.couplePrice}
+                  onChange={e => setAutoShowtime({...autoShowtime, couplePrice: parseInt(e.target.value)})}
+                />
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAutoModalOpen(false)}
+                  className="px-4 py-2 text-gray-500 hover:text-gray-700"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                >
+                  Tạo lịch
+                </button>
+              </div>
+            </form>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
+
       {/* Add Seat Configuration Modal */}
       <Dialog
         open={isSeatConfigOpen}
@@ -520,11 +878,12 @@ export default function ShowtimeOne() {
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="mx-auto max-w-4xl w-full rounded-lg bg-white p-6 dark:bg-gray-800">
             <Dialog.Title className="text-lg font-medium mb-4">
-              Cấu hình ghế
+              Danh sách ghế
             </Dialog.Title>
             {selectedShowtimeId && (
               <ShowtimeSeatConfig
                 showtimeId={selectedShowtimeId}
+                seats={showtimeSeats}
                 onSave={handleSaveSeats}
               />
             )}
