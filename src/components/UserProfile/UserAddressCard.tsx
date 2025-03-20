@@ -86,12 +86,12 @@ export default function UserAddressCard() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Address
+              Địa chỉ
             </h4>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  City/State
+                  Thành phố/Quận/Huyện
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                   {userData?.address || "Not set"}
@@ -120,7 +120,7 @@ export default function UserAddressCard() {
                 fill=""
               />
             </svg>
-            Edit
+            Sửa địa chỉ
           </button>
         </div>
       </div>
@@ -129,10 +129,11 @@ export default function UserAddressCard() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Address
+              Sửa địa chỉ
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update your details to keep your profile up-to-date.
+              Cập nhật thông tin chi tiết của bạn để giữ cho hồ sơ của bạn được
+              cập nhật.
             </p>
           </div>
 
@@ -143,7 +144,7 @@ export default function UserAddressCard() {
               </div>
             )}
             <div className="px-2 mb-6">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Địa chỉ</Label>
               <Input
                 id="address"
                 name="address"
@@ -161,10 +162,10 @@ export default function UserAddressCard() {
                 onClick={closeModal}
                 disabled={isSubmitting}
               >
-                Cancel
+                Đóng
               </Button>
               <Button type="submit" size="sm" disabled={isSubmitting}>
-                {isSubmitting ? "Updating..." : "Save Changes"}
+                {isSubmitting ? "Updating..." : "Lưu thay đổi"}
               </Button>
             </div>
           </form>

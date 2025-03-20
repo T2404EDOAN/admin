@@ -7,7 +7,7 @@ export default function Theater() {
   return (
     <>
       <PageMeta
-        title="React.js Basic Tables Dashboard | TailAdmin - Next.js Admin Dashboard Template"
+        title="Quản lý rạp"
         description="This is React.js Basic Tables Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
       />
       <PageBreadcrumb pageTitle="Rạp chiếu" />
@@ -15,7 +15,6 @@ export default function Theater() {
         <ComponentCard title="Rạp chiếu">
           <TheaterOne />
         </ComponentCard>
-        
       </div>
     </>
   );

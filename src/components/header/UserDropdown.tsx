@@ -125,7 +125,7 @@ export default function UserDropdown() {
                   fill=""
                 />
               </svg>
-              Edit profile
+              Sửa thông tin
             </DropdownItem>
           </li>
           <li>
@@ -150,7 +150,7 @@ export default function UserDropdown() {
                   fill=""
                 />
               </svg>
-              Account settings
+              Thông tin cá nhân
             </DropdownItem>
           </li>
           <li>
@@ -175,12 +175,12 @@ export default function UserDropdown() {
                   fill=""
                 />
               </svg>
-              Support
+              Hỗ Trợ
             </DropdownItem>
           </li>
         </ul>
         <Link
-          to="/signin"
+          to="/"
           className="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >
           <svg
@@ -198,7 +198,7 @@ export default function UserDropdown() {
               fill=""
             />
           </svg>
-          Sign out
+          Đăng xuất
         </Link>
       </Dropdown>
     </div>

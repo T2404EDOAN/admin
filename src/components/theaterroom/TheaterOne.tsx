@@ -115,7 +115,7 @@ export default function TheaterOne() {
 
       if (newTheater.id) {
         const updateResponse = await axios.put(
-          `http://localhost:8081/api/theaters/${newTheater.id}`,
+          `http://localhost:8085/api/theaters/${newTheater.id}`,
           payload
         );
         console.log("=== Update Response ===");
@@ -123,7 +123,7 @@ export default function TheaterOne() {
         console.log("Data:", updateResponse.data);
       } else {
         const createResponse = await axios.post(
-          "http://localhost:8081/api/theaters",
+          "http://localhost:8085/api/theaters",
           payload
         );
         console.log("=== Create Response ===");
@@ -131,7 +131,7 @@ export default function TheaterOne() {
         console.log("Data:", createResponse.data);
       }
 
-      const response = await axios.get("http://localhost:8081/api/theaters");
+      const response = await axios.get("http://localhost:8085/api/theaters");
       setTheaters(response.data);
       setIsModalOpen(false);
       setNewTheater({ status: "ACTIVE" });
@@ -184,7 +184,7 @@ export default function TheaterOne() {
     if (theaterToDelete) {
       try {
         await axios.delete(
-          `http://localhost:8081/api/theaters/${theaterToDelete.id}`
+          `http://localhost:8085/api/theaters/${theaterToDelete.id}`
         );
         setTheaters(
           theaters.filter((theater) => theater.id !== theaterToDelete.id)
@@ -215,7 +215,7 @@ export default function TheaterOne() {
           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
         >
           <PlusIcon className="w-5 h-5" />
-          <span>Add New Theater</span>
+          <span>Thêm rạp mới</span>
         </button>
       </div>
 
@@ -228,51 +228,54 @@ export default function TheaterOne() {
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Theater Name
+                  STT
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Code
+                  Tên rạp
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Location
+                  Mã rạp
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Contact
+                  Địa chỉ
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Capacity
+                  Số lượng ghế
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Status
+                  Trạng thái
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Actions
+                  Chức năng
                 </TableCell>
               </TableRow>
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {theaters.map((theater) => (
+              {theaters.map((theater, index) => (
                 <TableRow key={theater.id}>
-                  <TableCell className="px-5 py-4 text-gray-800 text-theme-sm dark:text-white/90">
+                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    {index + 1}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     <div>
                       <span className="font-medium">{theater.name}</span>
                       <span className="block text-xs text-gray-400">
@@ -290,12 +293,6 @@ export default function TheaterOne() {
                         {theater.district}, {theater.city}
                       </span>
                     </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                    {theater.phoneNumber && <div>{theater.phoneNumber}</div>}
-                    {theater.email && (
-                      <div className="text-xs">{theater.email}</div>
-                    )}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     {theater.totalSeats} seats / {theater.totalRooms} rooms

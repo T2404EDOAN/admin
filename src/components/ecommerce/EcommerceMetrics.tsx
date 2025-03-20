@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -7,6 +9,26 @@ import {
 import Badge from "../ui/badge/Badge";
 
 export default function EcommerceMetrics() {
+  const [ticketCount, setTicketCount] = useState(0);
+  const [customerCount, setCustomerCount] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [ticketsRes, customersRes] = await Promise.all([
+          axios.get("http://localhost:8085/api/bookings/tickets-by-movie"),
+          axios.get("http://localhost:8085/api/users/total-customers"),
+        ]);
+        setTicketCount(ticketsRes.data);
+        setCustomerCount(customersRes.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
       {/* <!-- Metric Item Start --> */}
@@ -18,16 +40,16 @@ export default function EcommerceMetrics() {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Customers
+              Tổng số thành viên
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              3,782
+              {customerCount}
             </h4>
           </div>
-          <Badge color="success">
+          {/* <Badge color="success">
             <ArrowUpIcon />
             11.01%
-          </Badge>
+          </Badge> */}
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
@@ -40,10 +62,10 @@ export default function EcommerceMetrics() {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Orders
+              Tổng số vé đã đặt
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              5,359
+              {ticketCount}
             </h4>
           </div>
 

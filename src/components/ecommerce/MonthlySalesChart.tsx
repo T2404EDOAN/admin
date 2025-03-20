@@ -3,9 +3,38 @@ import { ApexOptions } from "apexcharts";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function MonthlySalesChart() {
+  const [ticketData, setTicketData] = useState<{
+    theaters: string[];
+    tickets: number[];
+  }>({
+    theaters: [],
+    tickets: [],
+  });
+
+  useEffect(() => {
+    const fetchTicketData = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:8085/api/bookings/tickets-by-theater"
+        );
+        const data = await response.json();
+        setTicketData({
+          theaters: data.map((item: any) =>
+            item.theaterName.split(" ").join("\n")
+          ),
+          tickets: data.map((item: any) => item.totalTickets),
+        });
+      } catch (error) {
+        console.error("Error fetching ticket data:", error);
+      }
+    };
+
+    fetchTicketData();
+  }, []);
+
   const options: ApexOptions = {
     colors: ["#465fff"],
     chart: {
@@ -27,55 +56,44 @@ export default function MonthlySalesChart() {
     dataLabels: {
       enabled: true,
       formatter: function (val) {
-        return val.toLocaleString('vi-VN') + ' vé';
+        return val.toLocaleString("vi-VN") + " vé";
       },
       style: {
-        fontSize: '12px',
-        colors: ["#fff"]
-      }
+        fontSize: "12px",
+        colors: ["#fff"],
+      },
     },
     xaxis: {
-      categories: [
-        'CGV\nAeon\nTân Phú',
-        'CGV\nCrescent\nMall',
-        'CGV\nSư Vạn\nHạnh',
-        'CGV\nVincom\nThủ Đức',
-        'CGV\nPearl\nPlaza',
-        'BHD\nPhạm\nHùng',
-        'BHD\nQuang\nTrung',
-        'Lotte\nCantavil',
-        'Lotte\nNam SG',
-        'Lotte\nGò Vấp',
-      ],
+      categories: ticketData.theaters,
       labels: {
         style: {
-          fontSize: '12px',
+          fontSize: "12px",
         },
         rotate: -45,
-      }
+      },
     },
     yaxis: {
       labels: {
-        formatter: (val) => val.toLocaleString('vi-VN'),
-      }
+        formatter: (val) => val.toLocaleString("vi-VN"),
+      },
     },
     grid: {
-      show: false
+      show: false,
     },
     tooltip: {
       y: {
-        formatter: (val: number) => `${val.toLocaleString('vi-VN')} vé`,
+        formatter: (val: number) => `${val.toLocaleString("vi-VN")} vé`,
       },
     },
     legend: {
-      show: false  // Hide the legend completely
+      show: false, // Hide the legend completely
     },
   };
 
   const series = [
     {
       name: "Số vé đã bán",
-      data: [2450, 2100, 1950, 1850, 1800, 1700, 1650, 1500, 1450, 1400],
+      data: ticketData.tickets,
     },
   ];
   const [isOpen, setIsOpen] = useState(false);
@@ -94,7 +112,6 @@ export default function MonthlySalesChart() {
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
             Thống Kê Vé Theo Rạp
           </h3>
-        
         </div>
         <div className="relative inline-block">
           <button className="dropdown-toggle" onClick={toggleDropdown}>
