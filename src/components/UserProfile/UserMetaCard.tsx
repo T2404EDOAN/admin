@@ -25,7 +25,7 @@ export default function UserMetaCard() {
         }
 
         const response = await axios.get(
-          `http://localhost:8085/api/users/${id}`,
+          `http://skystar.io.vn/api/users/${id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,

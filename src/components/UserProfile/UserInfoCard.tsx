@@ -35,7 +35,7 @@ export default function UserInfoCard() {
         }
 
         const response = await axios.get(
-          `http://localhost:8085/api/users/${id}`,
+          `http://skystar.io.vn/api/users/${id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -82,7 +82,7 @@ export default function UserInfoCard() {
       }
 
       const response = await axios.put(
-        `http://localhost:8085/api/users/${id}`,
+        `http://skystar.io.vn/api/users/${id}`,
         formData,
         {
           headers: {

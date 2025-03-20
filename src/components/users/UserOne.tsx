@@ -95,7 +95,7 @@ export default function UserOne() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8085/api/users/customers`);
+      const response = await fetch(`http://skystar.io.vn/api/users/customers`);
       if (!response.ok) throw new Error("Failed to fetch customers");
       const data = await response.json();
       console.log("Fetched data:", data); // Add this to debug
@@ -165,7 +165,7 @@ export default function UserOne() {
 
   const handleEditUser = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8085/api/users/${id}`);
+      const response = await fetch(`http://skystar.io.vn/api/users/${id}`);
       if (!response.ok) throw new Error("Failed to fetch user");
       const user = await response.json();
       setSelectedUser(user);
@@ -183,14 +183,11 @@ export default function UserOne() {
       console.log("Sending update request for user ID:", userId);
       console.log("Update payload:", updatedFields);
 
-      const response = await fetch(
-        `http://localhost:8085/api/users/${userId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedFields),
-        }
-      );
+      const response = await fetch(`http://skystar.io.vn/api/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedFields),
+      });
 
       const responseData = await response.json();
       console.log("Update response:", responseData);
@@ -207,7 +204,7 @@ export default function UserOne() {
   const handleDeleteUser = async (id: number) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
       try {
-        const response = await fetch(`http://localhost:8085/api/users/${id}`, {
+        const response = await fetch(`http://skystar.io.vn/api/users/${id}`, {
           method: "DELETE",
         });
         if (!response.ok) throw new Error("Failed to delete user");
@@ -277,7 +274,7 @@ export default function UserOne() {
 
       console.log("Đang tạo người dùng mới:", newUser);
 
-      const response = await fetch("http://localhost:8085/api/users", {
+      const response = await fetch("http://skystar.io.vn/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -115,7 +115,7 @@ export default function TheaterOne() {
 
       if (newTheater.id) {
         const updateResponse = await axios.put(
-          `http://localhost:8085/api/theaters/${newTheater.id}`,
+          `http://skystar.io.vn/api/theaters/${newTheater.id}`,
           payload
         );
         console.log("=== Update Response ===");
@@ -123,7 +123,7 @@ export default function TheaterOne() {
         console.log("Data:", updateResponse.data);
       } else {
         const createResponse = await axios.post(
-          "http://localhost:8085/api/theaters",
+          "http://skystar.io.vn/api/theaters",
           payload
         );
         console.log("=== Create Response ===");
@@ -131,7 +131,7 @@ export default function TheaterOne() {
         console.log("Data:", createResponse.data);
       }
 
-      const response = await axios.get("http://localhost:8085/api/theaters");
+      const response = await axios.get("http://skystar.io.vn/api/theaters");
       setTheaters(response.data);
       setIsModalOpen(false);
       setNewTheater({ status: "ACTIVE" });
@@ -154,7 +154,7 @@ export default function TheaterOne() {
     const fetchTableData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:8085/api/theaters");
+        const response = await axios.get("http://skystar.io.vn/api/theaters");
 
         // Lưu toàn bộ dữ liệu vào state
         setTheaters(response.data);
@@ -184,7 +184,7 @@ export default function TheaterOne() {
     if (theaterToDelete) {
       try {
         await axios.delete(
-          `http://localhost:8085/api/theaters/${theaterToDelete.id}`
+          `http://skystar.io.vn/api/theaters/${theaterToDelete.id}`
         );
         setTheaters(
           theaters.filter((theater) => theater.id !== theaterToDelete.id)

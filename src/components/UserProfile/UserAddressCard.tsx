@@ -25,7 +25,7 @@ export default function UserAddressCard() {
         if (!id) throw new Error("User ID missing");
 
         const response = await axios.get(
-          `http://localhost:8085/api/users/${id}`
+          `http://skystar.io.vn/api/users/${id}`
         );
         setUserData(response.data);
         setAddressInput(response.data.address || "");
@@ -63,7 +63,7 @@ export default function UserAddressCard() {
       };
 
       const response = await axios.put(
-        `http://localhost:8085/api/users/${userData.id}`,
+        `http://skystar.io.vn/api/users/${userData.id}`,
         dataToUpdate,
         { headers: { "Content-Type": "application/json" } }
       );

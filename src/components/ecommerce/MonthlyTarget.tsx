@@ -37,7 +37,7 @@ export default function MonthlyTarget() {
     const fetchMovieStats = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:8085/api/movies/movies-by-status"
+          "http://skystar.io.vn/api/movies/movies-by-status"
         );
         const statusCounts = response.data;
 

@@ -173,7 +173,7 @@ export default function MovieOne() {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:8085/api/movies/all?pageNo=${
+        `http://skystar.io.vn/api/movies/all?pageNo=${
           pagination.current - 1
         }&pageSize=${pagination.pageSize}&sortBy=title&sortDir=asc`
       );
@@ -196,7 +196,7 @@ export default function MovieOne() {
   // Update fetchMovieDetails function
   const fetchMovieDetails = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8085/api/movies/${id}`);
+      const response = await fetch(`http://skystar.io.vn/api/movies/${id}`);
       if (!response.ok) throw new Error("Failed to fetch movie details");
       const data = await response.json();
 
@@ -315,8 +315,8 @@ export default function MovieOne() {
     }
 
     const url = isEditing
-      ? `http://localhost:8085/api/movies/${newMovie.id}`
-      : "http://localhost:8085/api/movies/create";
+      ? `http://skystar.io.vn/api/movies/${newMovie.id}`
+      : "http://skystar.io.vn/api/movies/create";
 
     try {
       const response = await fetch(url, {
@@ -342,7 +342,7 @@ export default function MovieOne() {
   const handleGenreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:8085/api/genres/create", {
+      const response = await fetch("http://skystar.io.vn/api/genres/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -379,7 +379,7 @@ export default function MovieOne() {
   // Add this function to fetch genres
   const fetchGenres = async () => {
     try {
-      const response = await fetch("http://localhost:8085/api/genres");
+      const response = await fetch("http://skystar.io.vn/api/genres");
       if (!response.ok) throw new Error("Failed to fetch genres");
       const data: Genre[] = await response.json();
       setGenreOptions(

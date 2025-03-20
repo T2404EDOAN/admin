@@ -18,7 +18,7 @@ export default function MonthlySalesChart() {
     const fetchTicketData = async () => {
       try {
         const response = await fetch(
-          "http://localhost:8085/api/bookings/tickets-by-theater"
+          "http://skystar.io.vn/api/bookings/tickets-by-theater"
         );
         const data = await response.json();
         setTicketData({

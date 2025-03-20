@@ -163,7 +163,7 @@ export default function RoomOne() {
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:8085/api/rooms");
+      const response = await axios.get("http://skystar.io.vn/api/rooms");
       const mappedRooms = response.data.map((room: any) => ({
         ...room,
         roomType: mapApiToRoomType(room.roomType),
@@ -181,7 +181,7 @@ export default function RoomOne() {
 
   const fetchTheaters = async () => {
     try {
-      const response = await axios.get("http://localhost:8085/api/theaters");
+      const response = await axios.get("http://skystar.io.vn/api/theaters");
       console.log("Raw theaters response:", response);
       console.log("Theaters data:", response.data);
       // Kiểm tra xem response.data có phải là array không
@@ -205,7 +205,7 @@ export default function RoomOne() {
       };
       console.log("Processed API data to send:", apiData);
       const response = await axios.post(
-        "http://localhost:8085/api/rooms/create",
+        "http://skystar.io.vn/api/rooms/create",
         apiData
       );
       console.log("API response:", response);
@@ -233,7 +233,7 @@ export default function RoomOne() {
         roomType: mapRoomTypeToApi(roomData.roomType),
       };
       const response = await axios.put(
-        `http://localhost:8085/api/rooms/${id}`,
+        `http://skystar.io.vn/api/rooms/${id}`,
         apiData
       );
       const mappedResponse = {
@@ -249,7 +249,7 @@ export default function RoomOne() {
   const deleteRoom = async (id: number) => {
     try {
       console.log("Deleting room:", id);
-      await axios.delete(`http://localhost:8085/api/rooms/${id}`);
+      await axios.delete(`http://skystar.io.vn/api/rooms/${id}`);
       console.log("Room deleted successfully");
       setRooms(rooms.filter((room) => room.id !== id));
     } catch (err) {

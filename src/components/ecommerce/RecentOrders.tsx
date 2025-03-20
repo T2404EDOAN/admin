@@ -23,7 +23,7 @@ export default function RecentOrders() {
     const fetchMovieStats = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:8085/api/bookings/revenue-by-movie"
+          "http://skystar.io.vn/api/bookings/revenue-by-movie"
         );
         setMovieStats(response.data);
       } catch (error) {

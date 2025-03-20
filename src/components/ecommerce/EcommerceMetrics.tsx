@@ -16,8 +16,8 @@ export default function EcommerceMetrics() {
     const fetchData = async () => {
       try {
         const [ticketsRes, customersRes] = await Promise.all([
-          axios.get("http://localhost:8085/api/bookings/tickets-by-movie"),
-          axios.get("http://localhost:8085/api/users/total-customers"),
+          axios.get("http://skystar.io.vn/api/bookings/tickets-by-movie"),
+          axios.get("http://skystar.io.vn/api/users/total-customers"),
         ]);
         setTicketCount(ticketsRes.data);
         setCustomerCount(customersRes.data);

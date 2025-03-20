@@ -66,7 +66,7 @@ export default function ProductOne() {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:8085/api/products?pageNo=${
+        `http://skystar.io.vn/api/products?pageNo=${
           pagination.current - 1
         }&pageSize=${pagination.pageSize}`
       );
@@ -89,7 +89,7 @@ export default function ProductOne() {
   const fetchCategories = async () => {
     try {
       const response = await fetch(
-        "http://localhost:8085/api/productCategories"
+        "http://skystar.io.vn/api/productCategories"
       );
       if (!response.ok) throw new Error("Failed to fetch categories");
       const data = await response.json();
@@ -131,7 +131,7 @@ export default function ProductOne() {
 
   const handleEditProduct = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8085/api/products/${id}`);
+      const response = await fetch(`http://skystar.io.vn/api/products/${id}`);
       if (!response.ok) throw new Error("Failed to fetch product");
       const product = await response.json();
       setSelectedProduct(product);
@@ -163,7 +163,7 @@ export default function ProductOne() {
       console.log("Complete product data for update:", completeProductData);
 
       const response = await fetch(
-        `http://localhost:8085/api/products/${productId}`,
+        `http://skystar.io.vn/api/products/${productId}`,
         {
           method: "PUT",
           headers: {
@@ -189,7 +189,7 @@ export default function ProductOne() {
     if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
       try {
         const response = await fetch(
-          `http://localhost:8085/api/products/${id}`,
+          `http://skystar.io.vn/api/products/${id}`,
           {
             method: "DELETE",
           }
@@ -248,13 +248,10 @@ export default function ProductOne() {
         form.appendChild(textArea);
       }
 
-      const response = await fetch(
-        "http://localhost:8085/api/products/create",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch("http://skystar.io.vn/api/products/create", {
+        method: "POST",
+        body: formData,
+      });
 
       if (!response.ok) throw new Error("Failed to create product");
       await fetchProducts();
@@ -281,7 +278,7 @@ export default function ProductOne() {
       );
 
       const response = await fetch(
-        "http://localhost:8085/api/productCategories/create",
+        "http://skystar.io.vn/api/productCategories/create",
         {
           method: "POST",
           headers: {

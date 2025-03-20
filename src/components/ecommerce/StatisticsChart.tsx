@@ -10,7 +10,7 @@ export default function StatisticsChart() {
   const [monthlyData, setMonthlyData] = useState<MonthlyRevenue>({});
 
   useEffect(() => {
-    fetch("http://localhost:8085/api/payments/monthly-revenue")
+    fetch("http://skystar.io.vn/api/payments/monthly-revenue")
       .then((res) => res.json())
       .then((data) => setMonthlyData(data))
       .catch((err) => console.error(err));
